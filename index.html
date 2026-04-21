@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>🎁 VILLD GIFT</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- TON Connect -->
+    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;}
+        :root{
+            --bg:#0a0a0f;--surface:#12121a;--surface2:#1a1a24;--surface3:#222230;
+            --primary:#00d4ff;--primary-light:#33ddff;--primary-dark:#0099cc;
+            --accent:#f59e0b;--accent-light:#fbbf24;--star:#fbbf24;--ton:#0088cc;--gift:#ff6b9d;
+            --text:#ffffff;--text2:#8b95a5;--border:#2a2a3a;--green:#10b981;--red:#ef4444;
+        }
+        body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;overflow-x:hidden;min-height:100vh;padding-bottom:80px;}
+        
+        /* ========== ЗАГРУЗОЧНЫЙ ЭКРАН ========== */
+        .loading-screen{position:fixed;inset:0;background:#0a0a0f;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity 0.6s,visibility 0.6s;}
+        .loading-screen.hide{opacity:0;visibility:hidden;pointer-events:none;}
+        .letters-wrapper{display:flex;gap:4px;margin-bottom:40px;}
+        .letter{font-family:'Inter',sans-serif;font-size:clamp(36px,10vw,64px);font-weight:900;animation:bounce 1.2s infinite ease-in-out;text-shadow:0 0 20px currentColor;}
+        .letter:nth-child(1){color:#ff0000;animation-delay:0s;}
+        .letter:nth-child(2){color:#ff8800;animation-delay:0.1s;}
+        .letter:nth-child(3){color:#ffdd00;animation-delay:0.2s;}
+        .letter:nth-child(4){color:#00cc44;animation-delay:0.3s;}
+        .letter:nth-child(5){color:#00cccc;animation-delay:0.4s;}
+        .letter:nth-child(6){color:transparent;animation:none;text-shadow:none;}
+        .letter:nth-child(7){color:#0088ff;animation-delay:0.5s;}
+        .letter:nth-child(8){color:#8844ff;animation-delay:0.6s;}
+        .letter:nth-child(9){color:#ff44ff;animation-delay:0.7s;}
+        .letter:nth-child(10){color:#00d4ff;animation-delay:0.8s;}
+        @keyframes bounce{0%,100%{transform:translateY(0);}50%{transform:translateY(-20px);}}
+        .loading-text{font-family:'Inter',sans-serif;font-size:14px;letter-spacing:10px;color:#8b95a5;font-weight:500;text-transform:uppercase;animation:pulse 1.5s infinite;}
+        @keyframes pulse{0%,100%{opacity:0.5;}50%{opacity:1;}}
+        .flash-transition{position:fixed;inset:0;background:#ffffff;z-index:99998;opacity:0;pointer-events:none;transition:opacity 0.2s;}
+        .flash-transition.active{opacity:1;}
+        
+        /* ========== MAIN APP ========== */
+        #mainApp{display:none;background:var(--bg);min-height:100vh;}
+        #mainApp.show{display:block;animation:appear 0.4s;}
+        @keyframes appear{from{opacity:0;transform:scale(0.95);}to{opacity:1;transform:scale(1);}}
+        
+        /* ========== HEADER ========== */
+        .header{position:fixed;top:0;width:100%;background:rgba(10,10,15,0.97);backdrop-filter:blur(25px);z-index:1000;border-bottom:1px solid var(--border);padding:calc(env(safe-area-inset-top)+8px) 12px 8px;}
+        .header-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+        .user-badge{display:flex;align-items:center;gap:10px;}
+        .avatar{width:40px;height:40px;background:linear-gradient(135deg,var(--primary),var(--accent));border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;background-size:cover;}
+        .user-info{line-height:1.3;}
+        .user-name{font-weight:600;font-size:14px;}
+        .user-level{font-size:11px;color:var(--text2);}
+        .balance-row{display:flex;align-items:center;gap:6px;}
+        .ton-badge{background:var(--surface2);padding:6px 12px;border-radius:20px;display:flex;align-items:center;gap:4px;font-size:13px;font-weight:600;border:1px solid var(--border);cursor:pointer;}
+        .star-badge{background:var(--surface2);padding:6px 12px;border-radius:20px;display:flex;align-items:center;gap:4px;font-size:13px;font-weight:600;border:1px solid var(--border);cursor:pointer;}
+        
+        /* ========== MAIN CONTENT ========== */
+        .main{padding:calc(env(safe-area-inset-top)+80px) 12px 20px;}
+        
+        /* ========== BOTTOM NAV ========== */
+        .bottom-nav{position:fixed;bottom:0;left:0;right:0;background:rgba(10,10,15,0.98);backdrop-filter:blur(25px);border-top:1px solid var(--border);display:flex;padding:8px 16px calc(env(safe-area-inset-bottom)+8px);justify-content:space-around;z-index:1000;}
+        .nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--text2);font-size:11px;cursor:pointer;border:none;background:none;}
+        .nav-item.active{color:var(--primary);}
+        .nav-icon{font-size:24px;}
+        
+        .page{display:none;}
+        .page.active{display:block;animation:fadeIn .3s;}
+        @keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+        
+        /* ========== ПРОФИЛЬ ========== */
+        .profile-header{text-align:center;padding:20px;background:linear-gradient(135deg,var(--surface),var(--surface2));border-radius:20px;margin-bottom:15px;}
+        .profile-avatar{width:90px;height:90px;border-radius:20px;margin:0 auto 15px;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;font-size:40px;background-size:cover;}
+        .profile-name{font-size:20px;font-weight:700;margin-bottom:4px;}
+        .profile-id{color:var(--text2);font-size:13px;margin-bottom:15px;}
+        .stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:20px 0;}
+        .stat-box{text-align:center;padding:12px;background:var(--surface2);border-radius:12px;}
+        .stat-value{font-size:20px;font-weight:700;color:var(--star);}
+        .stat-label{font-size:11px;color:var(--text2);}
+        
+        .section-title{font-size:16px;font-weight:700;margin:20px 0 12px;display:flex;align-items:center;gap:8px;}
+        .btn{width:100%;padding:16px;border:none;border-radius:14px;font-weight:700;font-size:16px;cursor:pointer;background:linear-gradient(135deg,var(--primary),var(--primary-light));color:white;margin:5px 0;}
+        .btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border);}
+        
+        /* ========== РЕФЕРАЛЬНАЯ СИСТЕМА (БИЛЕТ) ========== */
+        .ref-ticket{background:linear-gradient(145deg,#1a1a2e,#16213e);border-radius:24px;padding:30px 20px;margin:20px 0;border:2px dashed var(--primary);position:relative;overflow:hidden;}
+        .ref-ticket::before{content:'';position:absolute;left:-20px;top:50%;transform:translateY(-50%);width:40px;height:40px;background:var(--bg);border-radius:50%;}
+        .ref-ticket::after{content:'';position:absolute;right:-20px;top:50%;transform:translateY(-50%);width:40px;height:40px;background:var(--bg);border-radius:50%;}
+        .ticket-title{font-size:24px;font-weight:800;text-align:center;margin-bottom:10px;letter-spacing:4px;}
+        .ticket-subtitle{text-align:center;color:var(--text2);font-size:12px;margin-bottom:20px;text-transform:uppercase;letter-spacing:2px;}
+        .ticket-code{background:rgba(0,0,0,0.3);padding:15px;border-radius:12px;text-align:center;font-family:monospace;font-size:18px;letter-spacing:4px;margin:15px 0;word-break:break-all;}
+        .ticket-footer{display:flex;justify-content:space-between;align-items:center;margin-top:15px;}
+        .ref-stats{color:var(--text2);font-size:13px;}
+        .ref-stats span{color:var(--star);font-weight:700;}
+        .copy-btn{background:var(--primary);border:none;padding:10px 20px;border-radius:30px;color:white;font-weight:600;cursor:pointer;}
+        
+        /* ========== TON CONNECT ========== */
+        .wallet-section{background:var(--surface);border-radius:20px;padding:20px;margin:15px 0;}
+        .wallet-header{display:flex;align-items:center;gap:10px;margin-bottom:15px;}
+        .wallet-icon{font-size:28px;}
+        .wallet-title{font-size:18px;font-weight:700;}
+        .connected-wallet{background:var(--surface2);padding:12px;border-radius:12px;font-family:monospace;font-size:13px;word-break:break-all;margin:10px 0;}
+        #ton-connect-container{margin:15px 0;}
+        
+        .toast{position:fixed;top:150px;left:50%;transform:translateX(-50%);background:var(--surface2);padding:12px 24px;border-radius:40px;z-index:9999;border:1px solid var(--border);}
+        .toast.success{background:var(--green);}
+    </style>
+</head>
+<body>
+
+<!-- ЗАГРУЗОЧНЫЙ ЭКРАН -->
+<div class="loading-screen" id="loadingScreen">
+    <div class="letters-wrapper">
+        <span class="letter">V</span><span class="letter">I</span><span class="letter">L</span><span class="letter">L</span><span class="letter">D</span>
+        <span class="letter"> </span><span class="letter">G</span><span class="letter">I</span><span class="letter">F</span><span class="letter">T</span>
+    </div>
+    <div class="loading-text">LOADING</div>
+</div>
+<div class="flash-transition" id="flashTransition"></div>
+
+<!-- MAIN APP -->
+<div id="mainApp">
+    <div class="header">
+        <div class="header-top">
+            <div class="user-badge">
+                <div class="avatar" id="userAvatar">👤</div>
+                <div class="user-info">
+                    <div class="user-name" id="userName">Загрузка...</div>
+                    <div class="user-level" id="userLevel">Level 1</div>
+                </div>
+            </div>
+            <div class="balance-row">
+                <div class="ton-badge" onclick="openWallet()"><span>💎</span><span id="tonBal">0.00</span></div>
+                <div class="star-badge" onclick="openWallet()"><span>⭐</span><span id="starBal">0</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="main">
+        <!-- ГЛАВНАЯ (ЗАГЛУШКА) -->
+        <div class="page active" id="pageHome">
+            <div class="section-title"><span>🏠</span> Главная</div>
+            <div style="text-align:center;padding:40px;color:var(--text2);">
+                <p style="font-size:48px;margin-bottom:20px;">🎮</p>
+                <p>Здесь будут игры и кейсы</p>
+            </div>
+        </div>
+        
+        <!-- ПРОФИЛЬ -->
+        <div class="page" id="pageProfile">
+            <div class="profile-header">
+                <div class="profile-avatar" id="profileAvatar">👤</div>
+                <div class="profile-name" id="profileName">Загрузка...</div>
+                <div class="profile-id" id="profileId">ID: 000000</div>
+                <div class="stats-grid">
+                    <div class="stat-box"><div class="stat-value" id="casesOpened">0</div><div class="stat-label">Кейсов</div></div>
+                    <div class="stat-box"><div class="stat-value" id="totalWon">0</div><div class="stat-label">Выиграно</div></div>
+                    <div class="stat-box"><div class="stat-value" id="refCount">0</div><div class="stat-label">Друзей</div></div>
+                </div>
+            </div>
+            
+            <!-- TON CONNECT -->
+            <div class="wallet-section">
+                <div class="wallet-header">
+                    <span class="wallet-icon">💎</span>
+                    <span class="wallet-title">TON Кошелёк</span>
+                </div>
+                <div id="ton-connect-container"></div>
+                <div id="walletInfo" class="connected-wallet" style="display:none;"></div>
+            </div>
+            
+            <button class="btn" onclick="openWallet()">💎 Пополнить баланс</button>
+        </div>
+        
+        <!-- РЕФЕРАЛЬНАЯ СИСТЕМА -->
+        <div class="page" id="pageRef">
+            <div class="section-title"><span>👥</span> Пригласить друга</div>
+            
+            <div class="ref-ticket">
+                <div class="ticket-title">ADMIT ONE</div>
+                <div class="ticket-subtitle">Пригласи друга и получи бонус</div>
+                <div class="ticket-code" id="refCode">VILLD-XXXXXX</div>
+                <div class="ticket-footer">
+                    <div class="ref-stats">Друзей: <span id="refCountDisplay">0</span> | Заработано: <span id="refEarned">0</span> ⭐</div>
+                    <button class="copy-btn" onclick="copyRefLink()">📋 Копировать</button>
+                </div>
+            </div>
+            
+            <div class="section-title"><span>📋</span> Твои друзья</div>
+            <div id="refList" style="color:var(--text2);text-align:center;padding:20px;">Пока нет приглашённых друзей</div>
+        </div>
+    </div>
+    
+    <!-- BOTTOM NAV -->
+    <div class="bottom-nav">
+        <button class="nav-item active" onclick="switchPage('home')"><span class="nav-icon">🏠</span><span>Главная</span></button>
+        <button class="nav-item" onclick="switchPage('profile')"><span class="nav-icon">👤</span><span>Профиль</span></button>
+        <button class="nav-item" onclick="switchPage('ref')"><span class="nav-icon">👥</span><span>Друзья</span></button>
+    </div>
+</div>
+
+<div id="toast" class="toast" style="display:none;"></div>
+
+<script>
+const tg = window.Telegram?.WebApp;
+if(tg){tg.ready();tg.expand();tg.enableClosingConfirmation();}
+
+// ========== ДАННЫЕ ==========
+let data = JSON.parse(localStorage.getItem('villdFull')) || {
+    ton: 0.05, star: 100,
+    casesOpened: 0, totalWon: 0,
+    refCount: 0, refEarned: 0,
+    refCode: 'VILLD-' + Math.random().toString(36).substr(2,6).toUpperCase()
+};
+let {ton, star, casesOpened, totalWon, refCount, refEarned, refCode} = data;
+
+let user = {id:'',name:'Игрок',username:'',photo:''};
+if(tg?.initDataUnsafe?.user){
+    let u = tg.initDataUnsafe.user;
+    user.id = u.id;
+    user.name = u.first_name + (u.last_name?' '+u.last_name:'');
+    user.username = u.username ? '@'+u.username : '';
+    user.photo = u.photo_url || '';
+}
+
+// ========== TON CONNECT ==========
+let tonConnectUI;
+let connectedWallet = null;
+
+function initTonConnect(){
+    tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+        manifestUrl: 'https://raw.githubusercontent.com/ton-connect/demo/main/public/tonconnect-manifest.json',
+        buttonRootId: 'ton-connect-container'
+    });
+    
+    tonConnectUI.uiOptions = {
+        twaReturnUrl: 'https://t.me/VilldGiftBot'
+    };
+    
+    tonConnectUI.onStatusChange(wallet => {
+        if(wallet){
+            connectedWallet = wallet;
+            document.getElementById('walletInfo').style.display = 'block';
+            document.getElementById('walletInfo').innerHTML = `✅ Подключен: ${wallet.account.address.slice(0,6)}...${wallet.account.address.slice(-4)}`;
+            toast('✅ Кошелёк подключен!', 'success');
+        }else{
+            connectedWallet = null;
+            document.getElementById('walletInfo').style.display = 'none';
+        }
+    });
+}
+
+// ========== ЗАГРУЗКА ==========
+setTimeout(() => {
+    document.getElementById('flashTransition').classList.add('active');
+    setTimeout(() => {
+        document.getElementById('loadingScreen').classList.add('hide');
+        document.getElementById('mainApp').classList.add('show');
+        setTimeout(() => document.getElementById('flashTransition').classList.remove('active'), 200);
+        setupProfile();
+        initTonConnect();
+    }, 250);
+}, 2500);
+
+// ========== ФУНКЦИИ ==========
+function save(){Object.assign(data, {ton, star, casesOpened, totalWon, refCount, refEarned, refCode}); localStorage.setItem('villdFull', JSON.stringify(data));}
+function updUI(){
+    document.getElementById('tonBal').textContent = ton.toFixed(2);
+    document.getElementById('starBal').textContent = Math.floor(star);
+    document.getElementById('casesOpened').textContent = casesOpened;
+    document.getElementById('totalWon').textContent = totalWon.toFixed(1);
+    document.getElementById('refCount').textContent = refCount;
+    document.getElementById('refCountDisplay').textContent = refCount;
+    document.getElementById('refEarned').textContent = refEarned;
+    document.getElementById('refCode').textContent = refCode;
+    save();
+}
+function toast(msg, type=''){
+    let t = document.getElementById('toast');
+    t.textContent = msg; t.className = 'toast' + (type?' '+type:'');
+    t.style.display = 'block';
+    setTimeout(() => t.style.display = 'none', 2500);
+}
+function setupProfile(){
+    let displayName = user.username || user.name || 'Игрок';
+    document.getElementById('userName').textContent = displayName;
+    document.getElementById('profileName').textContent = displayName;
+    document.getElementById('profileId').textContent = 'ID: ' + (user.id || '000000');
+    if(user.photo){
+        document.getElementById('userAvatar').style.backgroundImage = `url(${user.photo})`;
+        document.getElementById('userAvatar').textContent = '';
+        document.getElementById('profileAvatar').style.backgroundImage = `url(${user.photo})`;
+        document.getElementById('profileAvatar').textContent = '';
+    }else{
+        document.getElementById('userAvatar').textContent = user.name?.charAt(0) || '👤';
+        document.getElementById('profileAvatar').textContent = user.name?.charAt(0) || '👤';
+    }
+    updUI();
+}
+
+// ========== НАВИГАЦИЯ ==========
+function switchPage(p){
+    document.querySelectorAll('.bottom-nav .nav-item').forEach((n,i)=>{
+        n.classList.toggle('active', (i===0&&p==='home')||(i===1&&p==='profile')||(i===2&&p==='ref'));
+    });
+    document.querySelectorAll('.page').forEach(pg=>pg.classList.remove('active'));
+    document.getElementById('page'+(p==='home'?'Home':p==='profile'?'Profile':'Ref')).classList.add('active');
+}
+
+// ========== РЕФЕРАЛЫ ==========
+function copyRefLink(){
+    let link = `https://t.me/VilldGiftBot?start=${refCode}`;
+    navigator.clipboard?.writeText(link);
+    toast('📋 Ссылка скопирована!', 'success');
+}
+
+// ========== КОШЕЛЁК ==========
+function openWallet(){
+    toast('💎 Пополнение - скоро!');
+}
+
+// Проверка реферала при загрузке
+if(window.location.search.includes('start=')){
+    let ref = window.location.search.split('start=')[1];
+    if(ref && ref !== refCode){
+        refCount++;
+        refEarned += 2;
+        updUI();
+        toast('🎉 +2 ⭐ за друга!', 'success');
+    }
+}
+</script>
+</body>
+                  </html>
