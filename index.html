@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🎁 VILLD GIFT</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;}
+        :root{--gift:#ff6b9d;--ton:#0088cc;--star:#ffd700;--bg:#0d0d1a;--surf:#1a1a2e;--surf2:#16213e;--bord:#2a2a4a;--txt:#fff;--txt2:#8899bb;--red:#ff4466;--grn:#00e676;}
+        body{background:var(--bg);color:var(--txt);font-family:'Rajdhani',sans-serif;overflow-x:hidden;padding-bottom:70px;}
+        
+        /* LOADING SCREEN */
+        .loading-screen{position:fixed;inset:0;background:linear-gradient(135deg,#0d0d1a,#1a1a2e);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .5s;}
+        .loading-screen.hide{opacity:0;pointer-events:none;}
+        .loading-logo{font-family:'Bebas Neue';font-size:48px;background:linear-gradient(135deg,var(--gift),var(--star));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:20px;letter-spacing:5px;}
+        .loading-emojis{display:flex;gap:20px;margin-bottom:30px;font-size:45px;animation:bounce 1.5s infinite;}
+        .loading-emojis span:nth-child(1){animation-delay:0s;}
+        .loading-emojis span:nth-child(2){animation-delay:.15s;}
+        .loading-emojis span:nth-child(3){animation-delay:.3s;}
+        .loading-emojis span:nth-child(4){animation-delay:.45s;}
+        .loading-emojis span:nth-child(5){animation-delay:.6s;}
+        @keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-15px)}}
+        .loading-text{color:var(--txt2);font-size:16px;letter-spacing:5px;margin-bottom:20px;}
+        .progress-bar{width:220px;height:4px;background:var(--surf2);border-radius:2px;overflow:hidden;}
+        .progress-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--gift),var(--star));animation:fill 2s ease-out forwards;}
+        @keyframes fill{0%{width:0%}100%{width:100%}}
+        
+        /* HEADER */
+        .hdr{position:fixed;top:0;width:100%;background:rgba(13,13,26,.97);backdrop-filter:blur(20px);z-index:1000;border-bottom:1px solid var(--bord);padding:calc(env(safe-area-inset-top)+8px) 12px 8px;}
+        .hdr-top{display:flex;justify-content:space-between;align-items:center;}
+        .user-info{display:flex;align-items:center;gap:10px;}
+        .avatar{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:bold;background:linear-gradient(135deg,var(--gift),var(--star));background-size:cover;background-position:center;}
+        .user-details{line-height:1.3;}
+        .user-name{font-weight:700;font-size:14px;}
+        .user-level{color:var(--txt2);font-size:11px;}
+        .bal-box{background:var(--surf2);border:1px solid var(--bord);padding:6px 14px;border-radius:30px;font-weight:700;display:flex;align-items:center;gap:8px;cursor:pointer;}
+        .ton-badge{color:var(--ton);}.star-badge{color:var(--star);}
+        
+        .main{margin-top:75px;padding:0 12px 20px;}
+        
+        /* TABS */
+        .page-tabs{display:flex;background:var(--surf);border-radius:14px;padding:4px;margin:10px 0;}
+        .page-tab{flex:1;padding:10px;border:none;background:transparent;color:var(--txt2);font-weight:700;border-radius:10px;cursor:pointer;font-size:13px;}
+        .page-tab.active{background:linear-gradient(135deg,var(--gift),var(--star));color:#fff;}
+        
+        .page{display:none;}
+        .page.active{display:block;}
+        
+        /* CASES GRID */
+        .cases-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;}
+        .case-card{background:linear-gradient(135deg,var(--surf),var(--surf2));border-radius:20px;padding:20px 10px;border:1px solid var(--bord);cursor:pointer;transition:.2s;text-align:center;}
+        .case-card:active{transform:scale(.96);border-color:var(--gift);}
+        .case-icon{font-size:40px;margin-bottom:10px;}
+        .case-name{font-weight:700;font-size:16px;margin-bottom:5px;}
+        .case-price{color:var(--star);font-weight:700;font-size:18px;margin-bottom:8px;}
+        
+        /* QUESTS */
+        .quests-section{background:var(--surf);border-radius:16px;padding:15px;margin:15px 0;}
+        .quest-item{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--bord);}
+        .quest-item:last-child{border-bottom:none;}
+        .quest-info{display:flex;align-items:center;gap:10px;}
+        .quest-icon{font-size:24px;}
+        .quest-title{font-weight:600;font-size:14px;}
+        .quest-reward{color:var(--star);font-weight:700;}
+        .quest-btn{background:var(--surf2);border:1px solid var(--bord);color:var(--txt2);padding:8px 16px;border-radius:20px;font-size:12px;cursor:pointer;}
+        .quest-btn.completed{background:var(--grn);color:#fff;border-color:var(--grn);}
+        .quest-btn.claimed{background:transparent;color:var(--txt2);}
+        
+        /* REFERRALS */
+        .ref-section{background:var(--surf);border-radius:16px;padding:15px;margin:15px 0;}
+        .ref-link-box{background:var(--surf2);padding:12px;border-radius:12px;margin:10px 0;word-break:break-all;font-size:13px;border:1px dashed var(--gift);}
+        
+        /* PROFILE */
+        .profile-card{background:var(--surf2);border-radius:20px;padding:20px;text-align:center;border:1px solid var(--bord);}
+        .profile-avatar{width:80px;height:80px;border-radius:50%;margin:0 auto 15px;display:flex;align-items:center;justify-content:center;font-size:36px;background:linear-gradient(135deg,var(--gift),var(--star));background-size:cover;background-position:center;}
+        .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-top:20px;}
+        .stat-item{text-align:center;}
+        .stat-value{font-size:24px;font-weight:700;color:var(--star);}
+        .stat-label{font-size:12px;color:var(--txt2);}
+        
+        /* ADMIN PANEL */
+        .admin-panel{background:var(--surf);border-radius:16px;padding:15px;margin:15px 0;border:1px solid var(--gift);}
+        
+        /* MODAL */
+        .modal{position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:2000;display:none;align-items:flex-end;}
+        .modal.on{display:flex;}
+        .modal-content{background:var(--surf);border-radius:28px 28px 0 0;width:100%;max-height:90vh;overflow-y:auto;padding:20px;border:1px solid var(--bord);}
+        .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;}
+        .modal-title{font-family:'Bebas Neue';font-size:28px;}
+        .modal-close{background:none;border:none;color:var(--txt2);font-size:28px;cursor:pointer;}
+        
+        .tab-bar{display:flex;background:var(--surf2);border-radius:12px;padding:4px;margin-bottom:20px;}
+        .tab-btn{flex:1;padding:12px;border:none;background:transparent;color:var(--txt2);font-weight:700;border-radius:10px;cursor:pointer;}
+        .tab-btn.active{background:linear-gradient(135deg,var(--gift),var(--star));color:#fff;}
+        .tab-content{display:none;}
+        .tab-content.active{display:block;}
+        
+        .address-box{background:#0a0a1a;padding:15px;border-radius:12px;word-break:break-all;font-family:monospace;font-size:13px;margin:10px 0;border:1px solid var(--bord);color:var(--ton);}
+        .input-field{width:100%;background:var(--surf2);border:1px solid var(--bord);color:var(--txt);padding:15px;border-radius:12px;font-size:16px;margin:10px 0;}
+        .btn{width:100%;padding:15px;border:none;border-radius:12px;font-weight:700;font-size:15px;cursor:pointer;background:linear-gradient(135deg,var(--gift),var(--star));color:#fff;text-transform:uppercase;}
+        .btn.small{padding:8px 16px;font-size:12px;width:auto;}
+        .btn.outline{background:transparent;border:1px solid var(--bord);color:var(--txt2);}
+        .btn.green{background:linear-gradient(135deg,var(--grn),#00b894);}
+        
+        .toast{position:fixed;top:140px;left:50%;transform:translateX(-50%);padding:12px 24px;border-radius:40px;font-weight:700;z-index:9999;background:var(--surf2);border:1px solid var(--bord);}
+        .toast.success{border-color:var(--grn);color:var(--grn);}
+        .toast.error{border-color:var(--red);color:var(--red);}
+        
+        .case-open-animation{position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:3000;display:none;align-items:center;justify-content:center;flex-direction:column;}
+        .case-open-icon{font-size:100px;margin-bottom:20px;}
+        .case-open-reward{font-size:60px;font-weight:700;color:var(--star);animation:pop .5s;}
+        @keyframes pop{0%{transform:scale(0)}80%{transform:scale(1.2)}100%{transform:scale(1)}}
+    </style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div class="loading-screen" id="loadingScreen">
+    <div class="loading-logo">VILLD GIFT</div>
+    <div class="loading-emojis">
+        <span>🎁</span><span>💎</span><span>⭐</span><span>🚀</span><span>🎰</span>
+    </div>
+    <div class="loading-text">LOADING</div>
+    <div class="progress-bar"><div class="progress-fill"></div></div>
+</div>
+
+<!-- CASE OPEN ANIMATION -->
+<div class="case-open-animation" id="caseOpenAnim">
+    <div class="case-open-icon" id="animIcon">🎁</div>
+    <div class="case-open-reward" id="animReward">+0 ⭐</div>
+</div>
+
+<!-- HEADER -->
+<div class="hdr">
+    <div class="hdr-top">
+        <div class="user-info">
+            <div class="avatar" id="userAvatar">👤</div>
+            <div class="user-details">
+                <div class="user-name" id="userName">Загрузка...</div>
+                <div class="user-level" id="userLevel">Level 1</div>
+            </div>
+        </div>
+        <div class="bal-box" onclick="openWallet()">
+            <span class="ton-badge">💎 <span id="tonBal">0.00</span></span>
+            <span class="star-badge">⭐ <span id="starBal">0</span></span>
+        </div>
+    </div>
+</div>
+
+<div class="main">
+    <div class="page-tabs">
+        <button class="page-tab active" onclick="switchPage('cases')">🎁 Кейсы</button>
+        <button class="page-tab" onclick="switchPage('quests')">📋 Задания</button>
+        <button class="page-tab" onclick="switchPage('ref')">👥 Друзья</button>
+        <button class="page-tab" onclick="switchPage('profile')">👤 Профиль</button>
+    </div>
+    
+    <!-- КЕЙСЫ -->
+    <div class="page active" id="pageCases">
+        <div class="cases-grid" id="casesGrid"></div>
+    </div>
+    
+    <!-- ЗАДАНИЯ -->
+    <div class="page" id="pageQuests">
+        <div class="quests-section">
+            <h3 style="margin-bottom:15px;">🎯 Задания</h3>
+            <div id="questsList"></div>
+        </div>
+        <div class="admin-panel" id="adminPanel" style="display:none;">
+            <h3 style="margin-bottom:15px;color:var(--gift);">👑 АДМИН</h3>
+            <button class="btn small" onclick="adminGiveAll(500)">Выдать 500 ⭐ всем</button>
+        </div>
+    </div>
+    
+    <!-- РЕФЕРАЛЫ -->
+    <div class="page" id="pageRef">
+        <div class="ref-section">
+            <h3 style="margin-bottom:15px;">👥 Пригласи друга</h3>
+            <p style="color:var(--txt2);">+2 ⭐ за друга</p>
+            <div class="ref-link-box" id="refLink">https://t.me/VilldGiftBot?start=...</div>
+            <button class="btn small" onclick="copyRef()">📋 Копировать</button>
+            <p style="margin-top:15px;">Друзей: <span id="refCount">0</span> | Заработано: <span id="refEarned">0</span> ⭐</p>
+        </div>
+    </div>
+    
+    <!-- ПРОФИЛЬ -->
+    <div class="page" id="pageProfile">
+        <div class="profile-card">
+            <div class="profile-avatar" id="profileAvatar">👤</div>
+            <div class="user-name" id="profileName" style="font-size:20px;">Загрузка...</div>
+            <div class="user-level" id="profileLevel">Level 1</div>
+            <div class="stats-grid">
+                <div class="stat-item"><div class="stat-value" id="casesOpened">0</div><div class="stat-label">Кейсов</div></div>
+                <div class="stat-item"><div class="stat-value" id="totalWon">0 ⭐</div><div class="stat-label">Выиграно</div></div>
+                <div class="stat-item"><div class="stat-value" id="questsCompleted">0</div><div class="stat-label">Заданий</div></div>
+                <div class="stat-item"><div class="stat-value" id="refCountProf">0</div><div class="stat-label">Друзей</div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- КОШЕЛЁК -->
+<div class="modal" id="walletModal" onclick="if(event.target===this)closeWallet()">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div class="modal-title">ПОПОЛНЕНИЕ</div>
+            <button class="modal-close" onclick="closeWallet()">✕</button>
+        </div>
+        <div class="tab-bar">
+            <button class="tab-btn active" onclick="switchWalletTab('deposit')">ПОПОЛНИТЬ</button>
+            <button class="tab-btn" onclick="switchWalletTab('withdraw')">ВЫВЕСТИ</button>
+        </div>
+        <div class="tab-content active" id="tabDeposit">
+            <div class="address-box">UQDkY7gYEHiq0mozLgNsp04g2u_ZjZX19WlSsVq6bnJ0p6vP</div>
+            <button class="btn outline" onclick="copyAddress()">📋 КОПИРОВАТЬ</button>
+            <input type="number" id="tonAmount" class="input-field" placeholder="Сумма TON" value="1">
+            <button class="btn" onclick="openCryptoBot()">💎 ОПЛАТИТЬ</button>
+            <p style="text-align:center;margin:10px 0;">1 TON = 1000 ⭐</p>
+            <input type="text" id="promoCode" class="input-field" placeholder="Промокод">
+            <button class="btn green" onclick="applyPromo()">🎫 АКТИВИРОВАТЬ (+10%)</button>
+        </div>
+        <div class="tab-content" id="tabWithdraw">
+            <input type="number" id="withdrawAmount" class="input-field" placeholder="Сумма ⭐ (мин. 100)">
+            <input type="text" id="withdrawAddress" class="input-field" placeholder="Адрес TON">
+            <p style="color:var(--txt2);">Комиссия: 5%</p>
+            <button class="btn" onclick="withdrawStars()">💸 ВЫВЕСТИ</button>
+        </div>
+    </div>
+</div>
+
+<script>
+const tg = window.Telegram?.WebApp;
+if(tg){tg.ready();tg.expand();tg.enableClosingConfirmation();}
+
+// КОНФИГ
+const ADMIN_ID = '8478884644';
+const TON_WALLET = 'UQDkY7gYEHiq0mozLgNsp04g2u_ZjZX19WlSsVq6bnJ0p6vP';
+const BOT_USERNAME = 'VilldGiftBot';
+
+// КЕЙСЫ
+const CASES = [
+    {name:'Обычный',icon:'📦',price:1,min:1,max:10},
+    {name:'Бронзовый',icon:'🎁',price:5,min:3,max:50},
+    {name:'Серебряный',icon:'💎',price:10,min:5,max:100},
+    {name:'Золотой',icon:'👑',price:50,min:20,max:500},
+    {name:'Платиновый',icon:'💎',price:100,min:50,max:1000},
+    {name:'Легендарный',icon:'🚀',price:500,min:200,max:5000}
+];
+
+// ЗАДАНИЯ
+const QUESTS = [
+    {id:'daily',name:'Ежедневный вход',icon:'📅',reward:1,type:'daily'},
+    {id:'ref',name:'Пригласить друга',icon:'👥',reward:2,type:'ref'},
+    {id:'play10',name:'Сыграть 10 игр',icon:'🎮',reward:1,type:'play10',target:10},
+    {id:'win1000',name:'Выиграть 1000 ⭐',icon:'💰',reward:20,type:'win',target:1000}
+];
+
+// ДАННЫЕ ИГРОКА (СОХРАНЯЮТСЯ)
+let data = JSON.parse(localStorage.getItem('villdData')) || {
+    star: 0,
+    ton: 0,
+    casesOpened: 0,
+    totalWon: 0,
+    questsCompleted: 0,
+    refCount: 0,
+    refEarned: 0,
+    refCode: 'ref' + Math.random().toString(36).substr(2,8),
+    gamesPlayed: 0,
+    totalWinAmount: 0,
+    quests: {
+        daily: {claimed:false,lastDate:''},
+        ref: {claimed:false,progress:0},
+        play10: {claimed:false,progress:0},
+        win1000: {claimed:false,progress:0}
+    },
+    promoActive: false
+};
+
+let {star, ton, casesOpened, totalWon, questsCompleted, refCount, refEarned, refCode, gamesPlayed, totalWinAmount, quests, promoActive} = data;
+
+// ИНФО ПОЛЬЗОВАТЕЛЯ
+let user = {id:'',name:'Игрок',username:'',photo:''};
+if(tg?.initDataUnsafe?.user){
+    let u = tg.initDataUnsafe.user;
+    user.id = u.id;
+    user.name = u.first_name + (u.last_name ? ' '+u.last_name : '');
+    user.username = u.username ? '@'+u.username : '';
+    user.photo = u.photo_url || '';
+}
+
+let isAdmin = (user.id == ADMIN_ID);
+
+// СОХРАНЕНИЕ
+function save(){
+    Object.assign(data, {star, ton, casesOpened, totalWon, questsCompleted, refCount, refEarned, refCode, gamesPlayed, totalWinAmount, quests, promoActive});
+    localStorage.setItem('villdData', JSON.stringify(data));
+}
+
+// UI
+function updUI(){
+    document.getElementById('tonBal').textContent = ton.toFixed(2);
+    document.getElementById('starBal').textContent = Math.floor(star);
+    document.getElementById('userLevel').textContent = 'Level ' + (Math.floor(star/100)+1);
+    document.getElementById('profileLevel').textContent = 'Level ' + (Math.floor(star/100)+1);
+    document.getElementById('casesOpened').textContent = casesOpened;
+    document.getElementById('totalWon').textContent = Math.floor(totalWon) + ' ⭐';
+    document.getElementById('questsCompleted').textContent = questsCompleted;
+    document.getElementById('refCount').textContent = refCount;
+    document.getElementById('refCountProf').textContent = refCount;
+    document.getElementById('refEarned').textContent = refEarned;
+    save();
+}
+
+// ТОСТ
+function toast(m,t){let e=document.createElement('div');e.className='toast'+(t?' '+t:'');e.textContent=m;document.body.appendChild(e);setTimeout(()=>e.remove(),2500);}
+
+// ЗАГРУЗКА
+setTimeout(()=>document.getElementById('loadingScreen').classList.add('hide'),2000);
+
+// ПРОФИЛЬ
+function setupProfile(){
+    let n = user.username || user.name || 'Игрок';
+    document.getElementById('userName').textContent = n;
+    document.getElementById('profileName').textContent = n;
+    let a = document.getElementById('userAvatar'), p = document.getElementById('profileAvatar');
+    if(user.photo){a.style.backgroundImage=`url(${user.photo})`;a.textContent='';p.style.backgroundImage=`url(${user.photo})`;p.textContent='';}
+    else{a.textContent=user.name?.charAt(0)||'👤';p.textContent=user.name?.charAt(0)||'👤';}
+    document.getElementById('refLink').textContent = `https://t.me/${BOT_USERNAME}?start=${refCode}`;
+    if(isAdmin) document.getElementById('adminPanel').style.display = 'block';
+}
+
+// СТРАНИЦЫ
+function switchPage(p){
+    document.querySelectorAll('.page-tab').forEach((t,i)=>{
+        t.classList.toggle('active', i==['cases','quests','ref','profile'].indexOf(p));
+    });
+    document.querySelectorAll('.page').forEach(pg=>pg.classList.remove('active'));
+    document.getElementById('page'+(p.charAt(0).toUpperCase()+p.slice(1))).classList.add('active');
+    if(p=='quests') renderQuests();
+}
+
+// КЕЙСЫ
+function renderCases(){
+    let h='';
+    CASES.forEach(c=>{h+=`<div class="case-card" onclick="openCase(${c.price})"><div class="case-icon">${c.icon}</div><div class="case-name">${c.name}</div><div class="case-price">${c.price} ⭐</div><div style="color:var(--txt2);font-size:11px;">до ${c.max} ⭐</div></div>`;});
+    document.getElementById('casesGrid').innerHTML = h;
+}
+
+function openCase(price){
+    let c = CASES.find(x=>x.price==price);
+    if(!c) return;
+    if(star < price){toast('Недостаточно ⭐','error');return;}
+    star -= price;
+    let win = Math.floor(Math.random()*(c.max-c.min+1))+c.min;
+    if(promoActive){win = Math.floor(win*1.1);}
+    star += win;
+    casesOpened++;
+    totalWon += win;
+    totalWinAmount += win;
+    gamesPlayed++;
+    
+    // Задания
+    if(gamesPlayed >= 10 && !quests.play10.claimed) quests.play10.progress = gamesPlayed;
+    if(totalWinAmount >= 1000 && !quests.win1000.claimed) quests.win1000.progress = totalWinAmount;
+    
+    updUI();
+    
+    // Анимация
+    let a = document.getElementById('caseOpenAnim');
+    document.getElementById('animIcon').textContent = c.icon;
+    document.getElementById('animReward').textContent = '+'+win+' ⭐';
+    a.style.display = 'flex';
+    setTimeout(()=>a.style.display = 'none', 2000);
+    
+    toast('Выигрыш: +'+win+' ⭐','success');
+}
+
+// ЗАДАНИЯ
+function renderQuests(){
+    let h='';
+    QUESTS.forEach(q=>{
+        let claimed = quests[q.id]?.claimed;
+        let canClaim = false;
+        if(q.id=='daily'){ let today = new Date().toDateString(); canClaim = !claimed && quests[q.id]?.lastDate != today; }
+        else if(q.id=='ref'){ canClaim = !claimed && refCount > 0; }
+        else if(q.id=='play10'){ canClaim = !claimed && gamesPlayed >= 10; }
+        else if(q.id=='win1000'){ canClaim = !claimed && totalWinAmount >= 1000; }
+        
+        h+=`<div class="quest-item"><div class="quest-info"><span class="quest-icon">${q.icon}</span><span class="quest-title">${q.name}</span></div><div style="display:flex;align-items:center;gap:10px;"><span class="quest-reward">+${q.reward} ⭐</span>`;
+        if(claimed) h+=`<span class="quest-btn claimed">✅</span>`;
+        else if(canClaim) h+=`<button class="quest-btn completed" onclick="claimQuest('${q.id}')">ЗАБРАТЬ</button>`;
+        else h+=`<span class="quest-btn">⏳</span>`;
+        h+=`</div></div>`;
+    });
+    document.getElementById('questsList').innerHTML = h;
+}
+
+function claimQuest(id){
+    let q = QUESTS.find(x=>x.id==id);
+    if(!q) return;
+    let qd = quests[id];
+    if(qd.claimed){toast('Уже получено','error');return;}
+    
+    let can = false;
+    if(id=='daily'){ let t = new Date().toDateString(); if(qd.lastDate != t){qd.lastDate = t; can = true;} }
+    else if(id=='ref'){ if(refCount > 0) can = true; }
+    else if(id=='play10'){ if(gamesPlayed >= 10) can = true; }
+    else if(id=='win1000'){ if(totalWinAmount >= 1000) can = true; }
+    
+    if(!can){toast('Не выполнено','error');return;}
+    
+    qd.claimed = true;
+    star += q.reward;
+    questsCompleted++;
+    updUI();
+    renderQuests();
+    toast('+'+q.reward+' ⭐','success');
+}
+
+// ЕЖЕДНЕВНЫЙ ВХОД
+function checkDaily(){
+    let today = new Date().toDateString();
+    if(quests.daily.lastDate != today){
+        // Автоматически не даём, ждём кнопку
+    }
+}
+
+// РЕФЕРАЛЫ
+function copyRef(){
+    let link = `https://t.me/${BOT_USERNAME}?start=${refCode}`;
+    navigator.clipboard?.writeText(link);
+    toast('Ссылка скопирована!','success');
+}
+
+function addRef(){
+    refCount++;
+    refEarned += 2;
+    star += 2;
+    updUI();
+    toast('+2 ⭐ за друга!','success');
+}
+
+// КОШЕЛЁК
+function openWallet(){document.getElementById('walletModal').classList.add('on');}
+function closeWallet(){document.getElementById('walletModal').classList.remove('on');}
+function switchWalletTab(t){
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    event.target.classList.add('active');
+    document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+    document.getElementById('tab'+(t=='deposit'?'Deposit':'Withdraw')).classList.add('active');
+}
+function copyAddress(){navigator.clipboard?.writeText(TON_WALLET);toast('Адрес скопирован!');}
+function openCryptoBot(){
+    let amt = parseFloat(document.getElementById('tonAmount').value)||1;
+    navigator.clipboard?.writeText(TON_WALLET);
+    tg?.openTelegramLink('https://t.me/CryptoBot');
+    toast('Отправьте '+amt+' TON','success');
+    // Ручное зачисление для теста
+    setTimeout(()=>{ton+=amt;star+=amt*1000;updUI();toast('+'+amt*1000+' ⭐','success');},3000);
+}
+function applyPromo(){
+    let code = document.getElementById('promoCode').value;
+    if(code=='VILLD'){promoActive=true;toast('Промокод активирован! +10%','success');}
+    else{toast('Неверный промокод','error');}
+}
+function withdrawStars(){
+    let amt = parseInt(document.getElementById('withdrawAmount').value);
+    let addr = document.getElementById('withdrawAddress').value;
+    if(amt<100){toast('Мин. 100 ⭐','error');return;}
+    if(!addr){toast('Введите адрес','error');return;}
+    if(amt>star){toast('Недостаточно ⭐','error');return;}
+    let fee = amt*0.05, net = amt-fee;
+    star -= amt;
+    updUI();
+    toast('Вывод '+net+' ⭐ отправлен','success');
+    closeWallet();
+}
+
+// АДМИН
+function adminGiveAll(amt){
+    if(!isAdmin) return;
+    star += amt;
+    updUI();
+    toast('Админ: +'+amt+' ⭐','success');
+}
+
+// ИНИТ
+setupProfile();
+renderCases();
+updUI();
+checkDaily();
+
+// Проверка реферала
+let url = new URL(window.location);
+let ref = url.searchParams.get('start');
+if(ref && ref != refCode && !localStorage.getItem('refDone')){
+    localStorage.setItem('refDone',ref);
+    addRef();
+}
+</script>
+</body>
+                        </html>
