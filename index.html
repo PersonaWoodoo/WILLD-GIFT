@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>🎁 VILLD GIFT • CRASH</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;}
+        :root{
+            --bg:#000000;--surface:#0a0a0f;--surface2:#12121a;
+            --primary:#00d4ff;--accent:#f59e0b;--star:#fbbf24;
+            --text:#ffffff;--text2:#8b95a5;--border:#2a2a3a;--green:#10b981;--red:#ef4444;
+        }
+        
+        /* ========== ЗАГРУЗОЧНЫЙ ЭКРАН ========== */
+        .loading-screen{position:fixed;inset:0;background:#000;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity 0.6s,visibility 0.6s;}
+        .loading-screen.hide{opacity:0;visibility:hidden;pointer-events:none;}
+        .letters-wrapper{display:flex;gap:4px;margin-bottom:40px;}
+        .letter{font-family:'Inter',sans-serif;font-size:clamp(36px,10vw,64px);font-weight:900;animation:bounce 1.2s infinite ease-in-out;text-shadow:0 0 20px currentColor;}
+        .letter:nth-child(1){color:#ff0000;animation-delay:0s;}
+        .letter:nth-child(2){color:#ff8800;animation-delay:0.1s;}
+        .letter:nth-child(3){color:#ffdd00;animation-delay:0.2s;}
+        .letter:nth-child(4){color:#00cc44;animation-delay:0.3s;}
+        .letter:nth-child(5){color:#00cccc;animation-delay:0.4s;}
+        .letter:nth-child(6){color:transparent;animation:none;text-shadow:none;}
+        .letter:nth-child(7){color:#0088ff;animation-delay:0.5s;}
+        .letter:nth-child(8){color:#8844ff;animation-delay:0.6s;}
+        .letter:nth-child(9){color:#ff44ff;animation-delay:0.7s;}
+        .letter:nth-child(10){color:#00d4ff;animation-delay:0.8s;}
+        @keyframes bounce{0%,100%{transform:translateY(0);}50%{transform:translateY(-20px);}}
+        .loading-text{font-family:'Inter',sans-serif;font-size:14px;letter-spacing:10px;color:#8b95a5;font-weight:500;text-transform:uppercase;animation:pulse 1.5s infinite;}
+        @keyframes pulse{0%,100%{opacity:0.5;}50%{opacity:1;}}
+        .flash-transition{position:fixed;inset:0;background:#fff;z-index:99998;opacity:0;pointer-events:none;transition:opacity 0.2s;}
+        .flash-transition.active{opacity:1;}
+        
+        /* ========== MAIN APP ========== */
+        #mainApp{display:none;background:#000;min-height:100vh;padding-bottom:80px;}
+        #mainApp.show{display:block;animation:appear 0.4s;}
+        @keyframes appear{from{opacity:0;transform:scale(0.95);}to{opacity:1;transform:scale(1);}}
+        
+        /* ========== HEADER ========== */
+        .header{position:fixed;top:0;width:100%;background:rgba(0,0,0,0.95);backdrop-filter:blur(25px);z-index:1000;border-bottom:1px solid var(--border);padding:calc(env(safe-area-inset-top)+8px) 12px 8px;}
+        .header-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+        .user-badge{display:flex;align-items:center;gap:8px;}
+        .avatar{width:36px;height:36px;background:linear-gradient(135deg,var(--primary),var(--accent));border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;background-size:cover;}
+        .user-info{line-height:1.2;}
+        .user-name{font-weight:600;font-size:13px;color:var(--text2);}
+        .user-level{font-size:10px;color:var(--text2);}
+        .balance-row{display:flex;align-items:center;gap:4px;}
+        .curr-btn{background:var(--surface2);border:1px solid var(--border);color:var(--primary);padding:6px 10px;border-radius:20px;font-weight:700;font-size:11px;cursor:pointer;}
+        .bal-box{background:var(--surface2);border:1px solid var(--border);padding:6px 12px;border-radius:20px;font-weight:700;font-size:13px;cursor:pointer;}
+        .sound-btn{width:36px;height:36px;background:var(--surface2);border:1px solid var(--border);color:var(--text2);border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;}
+        .sound-btn.on{color:var(--primary);border-color:var(--primary);}
+        
+        .tabs{display:flex;gap:4px;margin-top:8px;}
+        .tab{padding:8px 12px;border:none;background:transparent;color:var(--text2);font-weight:600;font-size:12px;border-radius:8px;cursor:pointer;}
+        .tab.active{background:var(--primary);color:#000;}
+        
+        /* ========== MAIN ========== */
+        .main{padding:calc(env(safe-area-inset-top)+120px) 12px 20px;}
+        .page{display:none;}
+        .page.active{display:block;animation:fadeIn .3s;}
+        @keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+        
+        /* ========== CRASH ========== */
+        .crash-container{background:var(--surface);border-radius:20px;padding:16px;border:1px solid var(--border);}
+        .crash-hist{display:flex;gap:4px;overflow-x:auto;padding-bottom:8px;margin-bottom:12px;}
+        .hist-item{padding:4px 8px;border-radius:6px;font-size:11px;font-weight:700;white-space:nowrap;border:1px solid;}
+        .hist-item.red{color:var(--red);border-color:rgba(239,68,68,.4);}
+        .hist-item.yellow{color:#ffcc00;border-color:rgba(255,204,0,.4);}
+        .hist-item.green{color:var(--green);border-color:rgba(16,185,129,.4);}
+        .hist-item.purple{color:#bf5af2;border-color:rgba(191,90,242,.4);}
+        
+        .crash-canvas{background:#050505;border-radius:12px;height:260px;position:relative;overflow:hidden;border:1px solid var(--border);margin-bottom:12px;}
+        #crashCanvas{width:100%;height:100%;}
+        .crash-info{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;}
+        .crash-mult{font-family:'Inter',sans-serif;font-size:64px;font-weight:900;color:var(--primary);text-shadow:0 0 30px rgba(0,212,255,.5);}
+        .crash-mult.crash{color:var(--red);text-shadow:0 0 30px rgba(239,68,68,.5);}
+        .crash-status{font-size:12px;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:2px;}
+        
+        .crash-ctrl{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;}
+        .igrp{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;}
+        .ilbl{font-size:10px;color:var(--text2);display:block;margin-bottom:3px;font-weight:600;text-transform:uppercase;}
+        .ifield{width:100%;background:transparent;border:none;color:var(--text);font-size:16px;font-weight:700;outline:none;}
+        .btn{width:100%;padding:14px;border:none;border-radius:10px;font-weight:700;font-size:15px;cursor:pointer;background:var(--primary);color:#000;}
+        .btn.bet{background:var(--primary);}
+        .btn.cashout{background:linear-gradient(135deg,#39ff14,#00e676);color:#000;animation:pulse-glow 1s infinite;}
+        .btn.wait{background:var(--surface2);color:var(--text2);border:1px solid var(--border);}
+        .btn:disabled{opacity:.4;cursor:not-allowed;}
+        .btn.span2{grid-column:span 2;}
+        @keyframes pulse-glow{0%,100%{box-shadow:0 0 10px rgba(57,255,20,.25)}50%{box-shadow:0 0 24px rgba(57,255,20,.65)}}
+        
+        .players-panel{background:var(--surface);border-radius:16px;padding:14px;border:1px solid var(--border);margin-top:15px;max-height:300px;overflow-y:auto;}
+        .players-title{font-size:13px;font-weight:700;color:var(--primary);display:flex;justify-content:space-between;margin-bottom:10px;}
+        .player-row{display:flex;align-items:center;justify-content:space-between;padding:8px;background:var(--surface2);border-radius:8px;margin-bottom:6px;}
+        .player-left{display:flex;align-items:center;gap:8px;}
+        .player-avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;font-size:12px;}
+        .player-name{font-size:12px;font-weight:600;}
+        .player-bet{font-size:10px;color:var(--text2);}
+        .player-status{font-size:11px;font-weight:600;}
+        .player-status.win{color:var(--green);}
+        .player-status.lose{color:var(--red);}
+        
+        /* ========== ВАЛЮТА МОДАЛ ========== */
+        .modal{position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:2000;display:none;align-items:flex-end;}
+        .modal.on{display:flex;}
+        .modal-content{background:var(--surface);border-radius:20px 20px 0 0;width:100%;max-height:80vh;overflow-y:auto;padding:20px;animation:slideUp .3s;}
+        @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+        .modal-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 15px;}
+        .modal-title{font-size:20px;font-weight:700;text-align:center;margin-bottom:15px;}
+        .currency-option{display:flex;align-items:center;justify-content:space-between;padding:14px;background:var(--surface2);border-radius:12px;margin-bottom:8px;border:2px solid var(--border);cursor:pointer;}
+        .currency-option.active{border-color:var(--primary);background:rgba(0,212,255,.05);}
+        .currency-left{display:flex;align-items:center;gap:12px;}
+        .currency-flag{font-size:24px;}
+        .currency-name{font-weight:600;}
+        .currency-rate{font-size:12px;color:var(--text2);}
+        .currency-check{color:var(--primary);font-size:20px;opacity:0;}
+        .currency-option.active .currency-check{opacity:1;}
+        
+        .toast{position:fixed;top:150px;left:50%;transform:translateX(-50%);background:var(--surface2);padding:12px 24px;border-radius:40px;z-index:9999;border:1px solid var(--border);}
+        .toast.success{background:var(--green);}
+    </style>
+</head>
+<body>
+
+<!-- ЗАГРУЗОЧНЫЙ ЭКРАН -->
+<div class="loading-screen" id="loadingScreen">
+    <div class="letters-wrapper">
+        <span class="letter">V</span><span class="letter">I</span><span class="letter">L</span><span class="letter">L</span><span class="letter">D</span>
+        <span class="letter"> </span><span class="letter">G</span><span class="letter">I</span><span class="letter">F</span><span class="letter">T</span>
+    </div>
+    <div class="loading-text">LOADING</div>
+</div>
+<div class="flash-transition" id="flashTransition"></div>
+
+<!-- MAIN APP -->
+<div id="mainApp">
+    <div class="header">
+        <div class="header-top">
+            <div class="user-badge">
+                <div class="avatar" id="userAvatar">👤</div>
+                <div class="user-info">
+                    <div class="user-name" id="userName">Игрок</div>
+                    <div class="user-level" id="userLevel">Уровень 1</div>
+                </div>
+            </div>
+            <div class="balance-row">
+                <button class="curr-btn" onclick="openCurrencyModal()"><span id="currFlag">🇺🇸</span> <span id="currCode">USD</span></button>
+                <div class="bal-box" onclick="openDeposit()"><span id="balDisp">0.00</span></div>
+                <button class="sound-btn on" id="soundBtn" onclick="toggleSound()">🔊</button>
+            </div>
+        </div>
+        <div class="tabs">
+            <button class="tab active" onclick="switchPage('crash')">📈 CRASH</button>
+            <button class="tab" onclick="switchPage('deposit')">💎 ПОПОЛНИТЬ</button>
+            <button class="tab" onclick="switchPage('profile')">👤 ПРОФИЛЬ</button>
+        </div>
+    </div>
+
+    <div class="main">
+        <!-- CRASH -->
+        <div class="page active" id="pageCrash">
+            <div class="crash-container">
+                <div class="crash-hist" id="crashHistory"></div>
+                <div class="crash-canvas">
+                    <canvas id="crashCanvas"></canvas>
+                    <div class="crash-info">
+                        <div class="crash-mult" id="crashMult">—</div>
+                        <div class="crash-status" id="crashStatus">ОЖИДАНИЕ</div>
+                    </div>
+                </div>
+                <div class="crash-ctrl">
+                    <div class="igrp"><label class="ilbl">СТАВКА</label><input class="ifield" type="number" id="crashBet" value="10" min="1"></div>
+                    <div class="igrp"><label class="ilbl">АВТОВЫВОД x</label><input class="ifield" type="number" id="crashAuto" value="2.0" step="0.1" min="1.1"></div>
+                    <button class="btn bet span2" id="crashBtn" onclick="handleCrash()">СДЕЛАТЬ СТАВКУ</button>
+                </div>
+            </div>
+            <div class="players-panel">
+                <div class="players-title"><span>🎮 ИГРОКИ</span><span>🟢 LIVE</span></div>
+                <div id="playersList"></div>
+            </div>
+        </div>
+        
+        <!-- ПОПОЛНЕНИЕ -->
+        <div class="page" id="pageDeposit">
+            <div class="crash-container">
+                <h3 style="margin-bottom:15px;">💎 Пополнение</h3>
+                <div id="ton-connect-container"></div>
+                <div class="igrp" style="margin:15px 0;"><label class="ilbl">СУММА TON</label><input class="ifield" type="number" id="tonAmount" value="1" step="0.1"></div>
+                <button class="btn" onclick="doDeposit()">ПОПОЛНИТЬ</button>
+            </div>
+        </div>
+        
+        <!-- ПРОФИЛЬ -->
+        <div class="page" id="pageProfile">
+            <div class="crash-container">
+                <h3 style="margin-bottom:15px;">👤 Профиль</h3>
+                <div class="stat-box" style="text-align:center;padding:20px;background:var(--surface2);border-radius:12px;">
+                    <div style="font-size:48px;margin-bottom:10px;" id="profileAvatarLarge">👤</div>
+                    <div style="font-size:18px;font-weight:700;" id="profileName">Игрок</div>
+                    <div style="color:var(--text2);margin:10px 0;">Всего выиграно: <span id="totalWon">0</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ВАЛЮТА МОДАЛ -->
+<div class="modal" id="currencyModal" onclick="if(event.target===this)closeCurrencyModal()">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <div class="modal-handle"></div>
+        <div class="modal-title">💱 ВЫБОР ВАЛЮТЫ</div>
+        <div id="currencyList"></div>
+    </div>
+</div>
+
+<div id="toast" class="toast" style="display:none;"></div>
+
+<script>
+const tg = window.Telegram?.WebApp;
+if(tg){tg.ready();tg.expand();tg.enableClosingConfirmation();}
+
+// ========== ВАЛЮТА ==========
+const CURRENCIES = [
+    {code:'USD', sym:'$', name:'Доллар США', flag:'🇺🇸', rate:1},
+    {code:'RUB', sym:'₽', name:'Рубль', flag:'🇷🇺', rate:90},
+    {code:'EUR', sym:'€', name:'Евро', flag:'🇪🇺', rate:0.93},
+    {code:'KZT', sym:'₸', name:'Тенге', flag:'🇰🇿', rate:450},
+    {code:'UAH', sym:'₴', name:'Гривна', flag:'🇺🇦', rate:39},
+    {code:'TRY', sym:'₺', name:'Лира', flag:'🇹🇷', rate:32},
+];
+let currentCurrency = CURRENCIES[0];
+let balanceUSD = 1000;
+
+// ========== ЗВУК ==========
+let soundEnabled = true;
+let audioCtx = null;
+let currentOscillator = null;
+let currentGain = null;
+
+function initAudio() {
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+}
+
+function toggleSound() {
+    soundEnabled = !soundEnabled;
+    document.getElementById('soundBtn').classList.toggle('on', soundEnabled);
+    document.getElementById('soundBtn').textContent = soundEnabled ? '🔊' : '🔇';
+    if (!soundEnabled && currentOscillator) {
+        stopCrashSound();
+    }
+}
+
+function startCrashSound(mult) {
+    if (!soundEnabled) return;
+    initAudio();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    if (currentOscillator) stopCrashSound();
+    
+    currentGain = audioCtx.createGain();
+    currentOscillator = audioCtx.createOscillator();
+    currentOscillator.type = 'sine';
+    currentOscillator.connect(currentGain);
+    currentGain.connect(audioCtx.destination);
+    
+    const freq = 300 + (mult - 1) * 150;
+    currentOscillator.frequency.value = Math.min(freq, 2000);
+    currentGain.gain.value = Math.min(0.05 + (mult - 1) * 0.02, 0.2);
+    currentOscillator.start();
+}
+
+function stopCrashSound() {
+    if (currentOscillator) {
+        try { currentOscillator.stop(); } catch(e) {}
+        currentOscillator = null;
+    }
+    if (currentGain) {
+        currentGain = null;
+    }
+}
+
+// ========== CRASH ==========
+const CR = {
+    phase: 'wait', mult: 1, crashPoint: 0, bet: 0, autoCash: 0,
+    hasBet: false, cashedOut: false, hist: [], animId: null,
+    timer: null, countdown: 5, t0: 0
+};
+const K = 0.07;
+
+function formatMoney(usd) {
+    return currentCurrency.sym + (usd * currentCurrency.rate).toFixed(2);
+}
+
+function updateBalance() {
+    document.getElementById('balDisp').textContent = formatMoney(balanceUSD);
+}
+
+function updateCurrency() {
+    document.getElementById('currFlag').textContent = currentCurrency.flag;
+    document.getElementById('currCode').textContent = currentCurrency.code;
+    updateBalance();
+}
+
+function openCurrencyModal() {
+    let html = '';
+    CURRENCIES.forEach(c => {
+        const active = c.code === currentCurrency.code;
+        html += `<div class="currency-option ${active ? 'active' : ''}" onclick="selectCurrency('${c.code}')">
+            <div class="currency-left"><span class="currency-flag">${c.flag}</span><div><div class="currency-name">${c.name} (${c.code})</div><div class="currency-rate">1 USD = ${c.rate} ${c.code}</div></div></div>
+            <span class="currency-check">✓</span>
+        </div>`;
+    });
+    document.getElementById('currencyList').innerHTML = html;
+    document.getElementById('currencyModal').classList.add('on');
+}
+
+function closeCurrencyModal() {
+    document.getElementById('currencyModal').classList.remove('on');
+}
+
+function selectCurrency(code) {
+    currentCurrency = CURRENCIES.find(c => c.code === code);
+    updateCurrency();
+    closeCurrencyModal();
+    toast(currentCurrency.flag + ' ' + currentCurrency.name);
+}
+
+// ========== CRASH ЛОГИКА ==========
+function initCrash() {
+    const c = document.getElementById('crashCanvas');
+    c.width = c.offsetWidth || 300;
+    c.height = 260;
+    drawCrashBg();
+    genPlayers();
+    startBettingPhase();
+}
+
+function drawCrashBg() {
+    const c = document.getElementById('crashCanvas');
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#050505';
+    ctx.fillRect(0, 0, c.width, c.height);
+}
+
+function genPlayers() {
+    const names = ['Alex', 'Mike', 'Dragon', 'Lucky', 'King', 'Whale', 'Moon'];
+    const avatars = ['🦁','🐯','🐉','🍀','👑','🐋','🌙'];
+    let html = `<div class="player-row" id="playerRow">
+        <div class="player-left"><div class="player-avatar">👤</div><div><div class="player-name">Вы</div><div class="player-bet" id="playerBet">—</div></div></div>
+        <div class="player-status" id="playerStat">Ожидание</div>
+    </div>`;
+    for (let i = 0; i < 7; i++) {
+        html += `<div class="player-row" id="bot${i}">
+            <div class="player-left"><div class="player-avatar">${avatars[i]}</div><div><div class="player-name">${names[i]}</div><div class="player-bet" id="botBet${i}">—</div></div></div>
+            <div class="player-status" id="botStat${i}">Ожидание</div>
+        </div>`;
+    }
+    document.getElementById('playersList').innerHTML = html;
+}
+
+function startBettingPhase() {
+    CR.phase = 'betting'; CR.countdown = 5; CR.hasBet = false; CR.bet = 0; CR.cashedOut = false;
+    CR.crashPoint = genCrashPoint();
+    
+    document.getElementById('crashMult').textContent = CR.countdown;
+    document.getElementById('crashStatus').textContent = 'ПРИЁМ СТАВОК';
+    document.getElementById('crashBtn').textContent = 'СДЕЛАТЬ СТАВКУ';
+    document.getElementById('crashBtn').className = 'btn bet span2';
+    document.getElementById('crashBtn').disabled = false;
+    document.getElementById('playerBet').textContent = '—';
+    document.getElementById('playerStat').textContent = 'Ожидание';
+    document.getElementById('playerStat').className = 'player-status';
+    
+    for (let i = 0; i < 7; i++) {
+        document.getElementById(`botBet${i}`).textContent = '—';
+        document.getElementById(`botStat${i}`).textContent = 'Ожидание';
+        document.getElementById(`botStat${i}`).className = 'player-status';
+    }
+    
+    CR.timer = setInterval(() => {
+        CR.countdown--;
+        document.getElementById('crashMult').textContent = CR.countdown;
+        if (CR.countdown <= 0) {
+            clearInterval(CR.timer);
+            startFlightPhase();
+        }
+    }, 1000);
+}
+
+function startFlightPhase() {
+    CR.phase = 'flying'; CR.mult = 1; CR.t0 = performance.now();
+    document.getElementById('crashMult').textContent = '1.00x';
+    document.getElementById('crashStatus').textContent = '🚀 ПОЛЁТ!';
+    
+    if (CR.hasBet) {
+        document.getElementById('crashBtn').textContent = 'ЗАБРАТЬ ' + formatMoney(CR.bet * CR.mult);
+        document.getElementById('crashBtn').className = 'btn cashout span2';
+        document.getElementById('playerStat').textContent = 'В полёте';
+    } else {
+        document.getElementById('crashBtn').textContent = 'НАБЛЮДЕНИЕ';
+        document.getElementById('crashBtn').className = 'btn wait span2';
+        document.getElementById('crashBtn').disabled = true;
+    }
+    
+    startCrashSound(CR.mult);
+    
+    (function tick() {
+        if (CR.phase !== 'flying') return;
+        const t = (performance.now() - CR.t0) / 1000;
+        CR.mult = Math.exp(K * t);
+        document.getElementById('crashMult').textContent = CR.mult.toFixed(2) + 'x';
+        
+        if (soundEnabled && currentOscillator) {
+            const freq = 300 + (CR.mult - 1) * 150;
+            currentOscillator.frequency.value = Math.min(freq, 2000);
+        }
+        
+        if (CR.hasBet && !CR.cashedOut) {
+            document.getElementById('crashBtn').textContent = 'ЗАБРАТЬ ' + formatMoney(CR.bet * CR.mult);
+            if (CR.autoCash > 1 && CR.mult >= CR.autoCash) doCashout();
+        }
+        
+        if (CR.mult >= CR.crashPoint) {
+            endCrashPhase();
+            return;
+        }
+        CR.animId = requestAnimationFrame(tick);
+    })();
+}
+
+function endCrashPhase() {
+    CR.phase = 'crashed';
+    cancelAnimationFrame(CR.animId);
+    stopCrashSound();
+    
+    document.getElementById('crashMult').textContent = CR.crashPoint.toFixed(2) + 'x';
+    document.getElementById('crashMult').className = 'crash-mult crash';
+    document.getElementById('crashStatus').textContent = '💥 КРАШ!';
+    
+    if (CR.hasBet && !CR.cashedOut) {
+        document.getElementById('playerStat').textContent = 'Проигрыш';
+        document.getElementById('playerStat').className = 'player-status lose';
+    }
+    
+    document.getElementById('crashBtn').textContent = 'СДЕЛАТЬ СТАВКУ';
+    document.getElementById('crashBtn').className = 'btn bet span2';
+    document.getElementById('crashBtn').disabled = false;
+    
+    CR.hist.unshift(CR.crashPoint);
+    renderHistory();
+    
+    setTimeout(() => {
+        document.getElementById('crashMult').className = 'crash-mult';
+        startBettingPhase();
+    }, 3000);
+}
+
+function doCashout() {
+    if (CR.cashedOut || !CR.hasBet) return;
+    CR.cashedOut = true;
+    const win = CR.bet * CR.mult;
+    balanceUSD += win;
+    updateBalance();
+    document.getElementById('playerStat').textContent = CR.mult.toFixed(2) + 'x ✓';
+    document.getElementById('playerStat').className = 'player-status win';
+    document.getElementById('crashBtn').textContent = 'ЗАБРАНО ' + formatMoney(win);
+    document.getElementById('crashBtn').className = 'btn wait span2';
+    document.getElementById('crashBtn').disabled = true;
+    toast('+ ' + formatMoney(win), 'success');
+    stopCrashSound();
+}
+
+function handleCrash() {
+    if (CR.phase === 'betting' && !CR.hasBet) {
+        const betUSD = parseFloat(document.getElementById('crashBet').value);
+        if (!betUSD || betUSD > balanceUSD) {
+            toast('Недостаточно средств', 'error');
+            return;
+        }
+        balanceUSD -= betUSD;
+        updateBalance();
+        CR.bet = betUSD;
+        CR.hasBet = true;
+        CR.autoCash = parseFloat(document.getElementById('crashAuto').value) || 0;
+        document.getElementById('playerBet').textContent = formatMoney(betUSD);
+        document.getElementById('playerStat').textContent = 'Ставка принята';
+        document.getElementById('crashBtn').textContent = 'ОЖИДАНИЕ...';
+        document.getElementById('crashBtn').className = 'btn wait span2';
+        document.getElementById('crashBtn').disabled = true;
+        toast('Ставка принята!');
+    } else if (CR.phase === 'flying' && CR.hasBet && !CR.cashedOut) {
+        doCashout();
+    }
+}
+
+function genCrashPoint() {
+    const r = Math.random();
+    if (r < 0.10) return 1.00 + Math.random() * 0.20;
+    if (r < 0.28) return 1.20 + Math.random() * 0.50;
+    if (r < 0.48) return 1.70 + Math.random() * 0.80;
+    if (r < 0.66) return 2.50 + Math.random() * 1.50;
+    if (r < 0.80) return 4.00 + Math.random() * 4.00;
+    if (r < 0.90) return 8.00 + Math.random() * 10.0;
+    if (r < 0.97) return 18.0 + Math.random() * 32.0;
+    return 50 + Math.random() * 150;
+}
+
+function renderHistory() {
+    const h = document.getElementById('crashHistory');
+    h.innerHTML = '';
+    CR.hist.slice(0, 15).forEach(m => {
+        const cls = m < 1.5 ? 'red' : (m < 3 ? 'yellow' : (m < 6 ? 'green' : 'purple'));
+        h.innerHTML += `<div class="hist-item ${cls}">${m.toFixed(2)}x</div>`;
+    });
+}
+
+// ========== НАВИГАЦИЯ ==========
+function switchPage(page) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    event.target.classList.add('active');
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page' + (page === 'crash' ? 'Crash' : page === 'deposit' ? 'Deposit' : 'Profile')).classList.add('active');
+}
+
+// ========== ПОПОЛНЕНИЕ ==========
+let tonConnectUI;
+function initTonConnect() {
+    tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+        manifestUrl: 'https://raw.githubusercontent.com/ton-connect/demo/main/public/tonconnect-manifest.json',
+        buttonRootId: 'ton-connect-container'
+    });
+}
+function openDeposit() {
+    switchPage('deposit');
+    document.querySelectorAll('.tab')[1].classList.add('active');
+    document.querySelectorAll('.tab')[0].classList.remove('active');
+    document.querySelectorAll('.tab')[2].classList.remove('active');
+}
+function doDeposit() {
+    const amt = parseFloat(document.getElementById('tonAmount').value);
+    balanceUSD += amt * 1000;
+    updateBalance();
+    toast('+ ' + formatMoney(amt * 1000), 'success');
+}
+
+// ========== ТОСТ ==========
+function toast(msg, type = '') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast' + (type ? ' ' + type : '');
+    t.style.display = 'block';
+    setTimeout(() => t.style.display = 'none', 2500);
+}
+
+// ========== ПРОФИЛЬ ==========
+let user = { name: 'Игрок', photo: '' };
+if (tg?.initDataUnsafe?.user) {
+    const u = tg.initDataUnsafe.user;
+    user.name = u.first_name + (u.last_name ? ' ' + u.last_name : '');
+    user.photo = u.photo_url || '';
+}
+
+function setupProfile() {
+    document.getElementById('userName').textContent = user.name;
+    document.getElementById('profileName').textContent = user.name;
+    if (user.photo) {
+        document.getElementById('userAvatar').style.backgroundImage = `url(${user.photo})`;
+        document.getElementById('profileAvatarLarge').style.backgroundImage = `url(${user.photo})`;
+        document.getElementById('userAvatar').textContent = '';
+        document.getElementById('profileAvatarLarge').textContent = '';
+    }
+}
+
+// ========== ЗАГРУЗКА ==========
+setTimeout(() => {
+    document.getElementById('flashTransition').classList.add('active');
+    setTimeout(() => {
+        document.getElementById('loadingScreen').classList.add('hide');
+        document.getElementById('mainApp').classList.add('show');
+        setTimeout(() => document.getElementById('flashTransition').classList.remove('active'), 200);
+        setupProfile();
+        initCrash();
+        initTonConnect();
+        updateBalance();
+    }, 250);
+}, 2500);
+</script>
+</body>
+  </html>
