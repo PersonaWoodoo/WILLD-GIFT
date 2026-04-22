@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>🎁 VILLD GIFT</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;}
+        :root{
+            --bg:#000000;--surface:#0a0a0f;--surface2:#12121a;
+            --primary:#00d4ff;--accent:#f59e0b;--star:#fbbf24;
+            --text:#ffffff;--text2:#8b95a5;--border:#2a2a3a;--green:#10b981;
+        }
+        
+        /* ========== ЗАГРУЗОЧНЫЙ ЭКРАН ========== */
+        .loading-screen{position:fixed;inset:0;background:#000;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity 0.6s,visibility 0.6s;}
+        .loading-screen.hide{opacity:0;visibility:hidden;pointer-events:none;}
+        .letters-wrapper{display:flex;gap:4px;margin-bottom:40px;}
+        .letter{font-family:'Inter',sans-serif;font-size:clamp(36px,10vw,64px);font-weight:900;animation:bounce 1.2s infinite ease-in-out;text-shadow:0 0 20px currentColor;}
+        .letter:nth-child(1){color:#ff0000;animation-delay:0s;}
+        .letter:nth-child(2){color:#ff8800;animation-delay:0.1s;}
+        .letter:nth-child(3){color:#ffdd00;animation-delay:0.2s;}
+        .letter:nth-child(4){color:#00cc44;animation-delay:0.3s;}
+        .letter:nth-child(5){color:#00cccc;animation-delay:0.4s;}
+        .letter:nth-child(6){color:transparent;animation:none;text-shadow:none;}
+        .letter:nth-child(7){color:#0088ff;animation-delay:0.5s;}
+        .letter:nth-child(8){color:#8844ff;animation-delay:0.6s;}
+        .letter:nth-child(9){color:#ff44ff;animation-delay:0.7s;}
+        .letter:nth-child(10){color:#ff1493;animation-delay:0.8s;}
+        @keyframes bounce{0%,100%{transform:translateY(0);}50%{transform:translateY(-20px);}}
+        .loading-text{font-family:'Inter',sans-serif;font-size:14px;letter-spacing:10px;color:#8b95a5;font-weight:500;text-transform:uppercase;animation:pulse 1.5s infinite;}
+        @keyframes pulse{0%,100%{opacity:0.5;}50%{opacity:1;}}
+        .flash-transition{position:fixed;inset:0;background:#fff;z-index:99998;opacity:0;pointer-events:none;transition:opacity 0.2s;}
+        .flash-transition.active{opacity:1;}
+        
+        /* ========== MAIN APP ========== */
+        #mainApp{display:none;background:#000;min-height:100vh;padding-bottom:80px;}
+        #mainApp.show{display:block;animation:appear 0.4s;}
+        @keyframes appear{from{opacity:0;transform:scale(0.95);}to{opacity:1;transform:scale(1);}}
+        
+        /* ========== HEADER ========== */
+        .header{position:fixed;top:0;width:100%;background:rgba(0,0,0,0.95);backdrop-filter:blur(25px);z-index:1000;border-bottom:1px solid var(--border);padding:calc(env(safe-area-inset-top)+8px) 16px 8px;}
+        .header-top{display:flex;justify-content:space-between;align-items:center;}
+        .user-badge{display:flex;align-items:center;gap:12px;}
+        .avatar{width:44px;height:44px;background:linear-gradient(135deg,#333,#555);border-radius:14px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;background-size:cover;}
+        .user-info{line-height:1.3;}
+        .user-name{font-weight:600;font-size:15px;color:#999;}
+        .user-level{font-size:11px;color:#666;}
+        .balance-row{display:flex;align-items:center;gap:8px;}
+        .star-badge{background:var(--surface2);padding:8px 14px;border-radius:30px;display:flex;align-items:center;gap:6px;font-size:14px;font-weight:600;border:1px solid var(--border);cursor:pointer;color:#999;}
+        
+        /* ========== MAIN ========== */
+        .main{padding:calc(env(safe-area-inset-top)+85px) 16px 20px;}
+        
+        /* ========== BOTTOM NAV ========== */
+        .bottom-nav{position:fixed;bottom:0;left:0;right:0;background:rgba(0,0,0,0.98);backdrop-filter:blur(25px);border-top:1px solid var(--border);display:flex;padding:10px 16px calc(env(safe-area-inset-bottom)+10px);justify-content:space-around;z-index:1000;}
+        .nav-item{display:flex;flex-direction:column;align-items:center;gap:4px;color:#666;font-size:11px;cursor:pointer;border:none;background:none;transition:.2s;}
+        .nav-item.active{color:#999;}
+        .nav-icon{font-size:24px;}
+        
+        .page{display:none;}
+        .page.active{display:block;animation:fadeIn .3s;}
+        @keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+        
+        /* ========== ПУСТЫЕ РАЗДЕЛЫ (СКОРО... серый) ========== */
+        .soon-container{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:300px;padding:40px 20px;}
+        .soon-text{font-family:'Inter',sans-serif;font-size:clamp(32px,8vw,56px);font-weight:700;color:#555;letter-spacing:8px;animation:soonPulse 2s infinite;}
+        @keyframes soonPulse{0%,100%{opacity:0.4;}50%{opacity:0.8;}}
+        
+        /* ========== ПРОФИЛЬ (СЕРЫЙ, ТЁМНЫЙ) ========== */
+        .profile-cover{position:relative;height:120px;background:linear-gradient(135deg,#1a1a1a,#0a0a0a);border-radius:0 0 24px 24px;margin-bottom:50px;}
+        .profile-avatar-wrapper{position:absolute;bottom:-45px;left:50%;transform:translateX(-50%);}
+        .profile-avatar-large{width:100px;height:100px;border-radius:28px;border:4px solid #000;background:linear-gradient(135deg,#333,#555);display:flex;align-items:center;justify-content:center;font-size:42px;font-weight:700;background-size:cover;color:#999;}
+        .profile-info{text-align:center;margin-top:55px;margin-bottom:20px;}
+        .profile-name-large{font-size:24px;font-weight:800;margin-bottom:4px;color:#aaa;}
+        .profile-username{color:#666;font-size:14px;}
+        .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:20px 0;}
+        .stat-card{background:var(--surface);border-radius:16px;padding:14px 8px;text-align:center;border:1px solid var(--border);}
+        .stat-value{font-size:20px;font-weight:700;color:#777;margin-bottom:4px;}
+        .stat-label{font-size:11px;color:#555;}
+        
+        /* ========== ПОПОЛНЕНИЕ (яркое) ========== */
+        .section-title{font-size:18px;font-weight:700;margin:20px 0 12px;color:var(--primary);}
+        .method-card{background:var(--surface);border-radius:20px;padding:20px;margin-bottom:12px;border:1px solid var(--border);}
+        .method-header{display:flex;align-items:center;gap:12px;}
+        .method-icon{font-size:32px;}
+        .method-info{flex:1;}
+        .method-name{font-weight:700;font-size:16px;color:var(--text);}
+        .method-bonus{color:var(--green);font-size:13px;}
+        .wallet-section{background:var(--surface);border-radius:20px;padding:20px;margin:15px 0;border:1px solid var(--border);}
+        .connected-info{background:var(--surface2);border-radius:12px;padding:12px;margin-top:12px;font-family:monospace;font-size:13px;color:var(--green);}
+        .amount-section{background:var(--surface);border-radius:20px;padding:20px;margin:15px 0;border:1px solid var(--border);}
+        .amount-label{color:var(--text2);font-size:13px;margin-bottom:8px;}
+        .amount-input-wrapper{display:flex;align-items:center;background:var(--surface2);border-radius:16px;padding:12px 16px;border:1px solid var(--border);}
+        .amount-input-wrapper span{font-size:24px;margin-right:12px;color:var(--star);}
+        .amount-input{flex:1;background:transparent;border:none;color:var(--text);font-size:28px;font-weight:700;outline:none;}
+        .quick-amounts{display:flex;gap:8px;margin-top:15px;}
+        .quick-btn{flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:12px;border-radius:12px;font-weight:600;cursor:pointer;text-align:center;}
+        .quick-btn.active{background:var(--primary);border-color:var(--primary);color:#000;}
+        
+        /* ========== ДРУЗЬЯ ========== */
+        .ref-ticket{background:linear-gradient(145deg,#1a1a2e,#16213e);border-radius:24px;padding:30px 20px;margin:20px 0;border:2px dashed var(--primary);position:relative;}
+        .ref-ticket::before{content:'';position:absolute;left:-20px;top:50%;transform:translateY(-50%);width:40px;height:40px;background:#000;border-radius:50%;}
+        .ref-ticket::after{content:'';position:absolute;right:-20px;top:50%;transform:translateY(-50%);width:40px;height:40px;background:#000;border-radius:50%;}
+        .ticket-title{font-size:24px;font-weight:800;text-align:center;margin-bottom:10px;color:var(--primary);}
+        .ticket-code{background:rgba(0,0,0,0.3);padding:15px;border-radius:12px;text-align:center;font-family:monospace;font-size:18px;margin:15px 0;color:var(--text);}
+        .ref-stats{color:var(--text2);font-size:13px;text-align:center;}
+        .ref-stats span{color:var(--star);font-weight:700;}
+        
+        .btn{width:100%;padding:16px;border:none;border-radius:14px;font-weight:700;font-size:16px;cursor:pointer;background:linear-gradient(135deg,var(--primary),var(--accent));color:#000;margin:5px 0;}
+        .btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border);}
+        
+        .toast{position:fixed;top:150px;left:50%;transform:translateX(-50%);background:var(--surface2);padding:12px 24px;border-radius:40px;z-index:9999;border:1px solid var(--border);color:var(--text);}
+        .toast.success{background:var(--green);color:#fff;}
+    </style>
+</head>
+<body>
+
+<!-- ЗАГРУЗОЧНЫЙ ЭКРАН -->
+<div class="loading-screen" id="loadingScreen">
+    <div class="letters-wrapper">
+        <span class="letter">V</span><span class="letter">I</span><span class="letter">L</span><span class="letter">L</span><span class="letter">D</span>
+        <span class="letter"> </span><span class="letter">G</span><span class="letter">I</span><span class="letter">F</span><span class="letter">T</span>
+    </div>
+    <div class="loading-text">LOADING</div>
+</div>
+<div class="flash-transition" id="flashTransition"></div>
+
+<!-- MAIN APP -->
+<div id="mainApp">
+    <div class="header">
+        <div class="header-top">
+            <div class="user-badge">
+                <div class="avatar" id="userAvatar">👤</div>
+                <div class="user-info">
+                    <div class="user-name" id="userName">Игрок</div>
+                    <div class="user-level" id="userLevel">Уровень 1</div>
+                </div>
+            </div>
+            <div class="balance-row">
+                <div class="star-badge" onclick="openDeposit()"><span>⭐</span><span id="starBal">0</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="main">
+        <!-- ПРОФИЛЬ (СЕРЫЙ) -->
+        <div class="page active" id="pageProfile">
+            <div class="profile-cover">
+                <div class="profile-avatar-wrapper">
+                    <div class="profile-avatar-large" id="profileAvatarLarge">👤</div>
+                </div>
+            </div>
+            <div class="profile-info">
+                <div class="profile-name-large" id="profileNameLarge">Игрок</div>
+                <div class="profile-username" id="profileUsername">@user</div>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-card"><div class="stat-value" id="casesOpened">0</div><div class="stat-label">Кейсов</div></div>
+                <div class="stat-card"><div class="stat-value" id="totalWon">0</div><div class="stat-label">Выиграно</div></div>
+                <div class="stat-card"><div class="stat-value" id="gamesPlayed">0</div><div class="stat-label">Игр</div></div>
+                <div class="stat-card"><div class="stat-value" id="refCount">0</div><div class="stat-label">Друзей</div></div>
+            </div>
+            <button class="btn" onclick="openDeposit()">💎 Пополнить баланс</button>
+        </div>
+        
+        <!-- ПОПОЛНЕНИЕ -->
+        <div class="page" id="pageDeposit">
+            <div class="section-title">💳 Способ пополнения</div>
+            <div class="method-card">
+                <div class="method-header">
+                    <span class="method-icon">💎</span>
+                    <div class="method-info">
+                        <div class="method-name">TON Wallet</div>
+                        <div class="method-bonus">+30% бонус</div>
+                    </div>
+                </div>
+            </div>
+            <div class="wallet-section">
+                <div class="method-header">
+                    <span class="method-icon">🔗</span>
+                    <div class="method-info"><div class="method-name">Подключить кошелёк</div></div>
+                </div>
+                <div id="ton-connect-container" style="margin:15px 0;"></div>
+                <div id="walletInfo" class="connected-info" style="display:none;"></div>
+            </div>
+            <div class="amount-section">
+                <div class="amount-label">СУММА (TON)</div>
+                <div class="amount-input-wrapper">
+                    <span>💎</span>
+                    <input type="number" id="depositAmount" class="amount-input" value="1" min="0.1" step="0.1">
+                </div>
+                <div class="quick-amounts">
+                    <div class="quick-btn active" onclick="setTonAmount(1)">1 TON</div>
+                    <div class="quick-btn" onclick="setTonAmount(5)">5 TON</div>
+                    <div class="quick-btn" onclick="setTonAmount(10)">10 TON</div>
+                </div>
+            </div>
+            <button class="btn" onclick="doDeposit()">💎 Пополнить</button>
+            <div style="margin-top:20px;padding:15px;background:var(--surface);border-radius:16px;">
+                <div style="font-weight:600;margin-bottom:8px;color:var(--text2);">📋 Или вручную:</div>
+                <div style="background:var(--surface2);padding:12px;border-radius:12px;font-family:monospace;font-size:12px;word-break:break-all;margin-bottom:10px;color:var(--text);">
+                    UQDkY7gYEHiq0mozLgNsp04g2u_ZjZX19WlSsVq6bnJ0p6vP
+                </div>
+                <button class="btn-secondary" style="width:100%;" onclick="copyAddress()">📋 Копировать</button>
+            </div>
+        </div>
+        
+        <!-- КЕЙСЫ (СКОРО... серый) -->
+        <div class="page" id="pageCases">
+            <div class="soon-container">
+                <div class="soon-text">СКОРО...</div>
+            </div>
+        </div>
+        
+        <!-- ДРУЗЬЯ -->
+        <div class="page" id="pageRef">
+            <div class="ref-ticket">
+                <div class="ticket-title">ADMIT ONE</div>
+                <div class="ticket-code" id="refCode">VILLD-XXXXXX</div>
+                <div class="ref-stats">Друзей: <span id="refCountDisplay">0</span> | Заработано: <span id="refEarned">0</span> ⭐</div>
+                <button class="btn" onclick="copyRefLink()" style="margin-top:15px;">📋 Копировать ссылку</button>
+            </div>
+        </div>
+        
+        <!-- ИГРЫ (СКОРО... серый) -->
+        <div class="page" id="pageGames">
+            <div class="soon-container">
+                <div class="soon-text">СКОРО...</div>
+            </div>
+        </div>
+        
+        <!-- ЗАДАНИЯ (СКОРО... серый) -->
+        <div class="page" id="pageQuests">
+            <div class="soon-container">
+                <div class="soon-text">СКОРО...</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- BOTTOM NAV -->
+    <div class="bottom-nav">
+        <button class="nav-item active" onclick="switchPage('profile')"><span class="nav-icon">👤</span><span>Профиль</span></button>
+        <button class="nav-item" onclick="switchPage('deposit')"><span class="nav-icon">💎</span><span>Пополнить</span></button>
+        <button class="nav-item" onclick="switchPage('cases')"><span class="nav-icon">🎁</span><span>Кейсы</span></button>
+        <button class="nav-item" onclick="switchPage('ref')"><span class="nav-icon">👥</span><span>Друзья</span></button>
+        <button class="nav-item" onclick="switchPage('games')"><span class="nav-icon">🎮</span><span>Игры</span></button>
+        <button class="nav-item" onclick="switchPage('quests')"><span class="nav-icon">📋</span><span>Задания</span></button>
+    </div>
+</div>
+
+<div id="toast" class="toast" style="display:none;"></div>
+
+<script>
+const tg = window.Telegram?.WebApp;
+if(tg){tg.ready();tg.expand();tg.enableClosingConfirmation();}
+
+const TON_WALLET = 'UQDkY7gYEHiq0mozLgNsp04g2u_ZjZX19WlSsVq6bnJ0p6vP';
+const BOT_USERNAME = 'VilldGiftBot';
+
+let data = JSON.parse(localStorage.getItem('villdGray')) || {
+    star: 262237, casesOpened: 124, totalWon: 261037, gamesPlayed: 28, refCount: 3, refEarned: 30,
+    refCode: 'VILLD-' + Math.random().toString(36).substr(2,6).toUpperCase()
+};
+let {star, casesOpened, totalWon, gamesPlayed, refCount, refEarned, refCode} = data;
+
+let user = {id:'',name:'Игрок',username:'',photo:''};
+if(tg?.initDataUnsafe?.user){
+    let u = tg.initDataUnsafe.user;
+    user.id = u.id;
+    user.name = u.first_name + (u.last_name?' '+u.last_name:'');
+    user.username = u.username ? '@'+u.username : '';
+    user.photo = u.photo_url || '';
+}
+
+let tonConnectUI, connectedWallet = null;
+function initTonConnect(){
+    tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+        manifestUrl: 'https://raw.githubusercontent.com/ton-connect/demo/main/public/tonconnect-manifest.json',
+        buttonRootId: 'ton-connect-container'
+    });
+    tonConnectUI.onStatusChange(w => {
+        if(w){
+            connectedWallet = w;
+            document.getElementById('walletInfo').style.display = 'block';
+            document.getElementById('walletInfo').innerHTML = `✅ ${w.account.address.slice(0,8)}...${w.account.address.slice(-6)}`;
+            toast('✅ Кошелёк подключен!','success');
+        }else{
+            connectedWallet = null;
+            document.getElementById('walletInfo').style.display = 'none';
+        }
+    });
+}
+
+setTimeout(() => {
+    document.getElementById('flashTransition').classList.add('active');
+    setTimeout(() => {
+        document.getElementById('loadingScreen').classList.add('hide');
+        document.getElementById('mainApp').classList.add('show');
+        setTimeout(() => document.getElementById('flashTransition').classList.remove('active'), 200);
+        setupProfile();
+        initTonConnect();
+    }, 250);
+}, 2500);
+
+function save(){Object.assign(data, {star, casesOpened, totalWon, gamesPlayed, refCount, refEarned, refCode}); localStorage.setItem('villdGray', JSON.stringify(data));}
+function updUI(){
+    document.getElementById('starBal').textContent = Math.floor(star);
+    document.getElementById('casesOpened').textContent = casesOpened;
+    document.getElementById('totalWon').textContent = totalWon;
+    document.getElementById('gamesPlayed').textContent = gamesPlayed;
+    document.getElementById('refCount').textContent = refCount;
+    document.getElementById('refCountDisplay').textContent = refCount;
+    document.getElementById('refEarned').textContent = refEarned;
+    document.getElementById('refCode').textContent = refCode;
+    save();
+}
+function toast(msg,type=''){
+    let t=document.getElementById('toast');t.textContent=msg;t.className='toast'+(type?' '+type:'');
+    t.style.display='block';setTimeout(()=>t.style.display='none',2000);
+}
+function setupProfile(){
+    let n = user.username || user.name || 'Игрок';
+    document.getElementById('userName').textContent = n;
+    document.getElementById('profileNameLarge').textContent = n;
+    document.getElementById('profileUsername').textContent = user.username || '@user';
+    if(user.photo){
+        document.getElementById('userAvatar').style.backgroundImage = `url(${user.photo})`;
+        document.getElementById('userAvatar').textContent = '';
+        document.getElementById('profileAvatarLarge').style.backgroundImage = `url(${user.photo})`;
+        document.getElementById('profileAvatarLarge').textContent = '';
+    }
+    updUI();
+}
+
+function switchPage(p){
+    document.querySelectorAll('.bottom-nav .nav-item').forEach((n,i)=>{
+        let pages = ['profile','deposit','cases','ref','games','quests'];
+        n.classList.toggle('active', pages[i] === p);
+    });
+    document.querySelectorAll('.page').forEach(pg=>pg.classList.remove('active'));
+    document.getElementById('page'+(p==='profile'?'Profile':p==='deposit'?'Deposit':p==='cases'?'Cases':p==='ref'?'Ref':p==='games'?'Games':'Quests')).classList.add('active');
+}
+
+function openDeposit(){switchPage('deposit');}
+function setTonAmount(a){document.getElementById('depositAmount').value=a;document.querySelectorAll('.quick-btn').forEach(b=>b.classList.remove('active'));event.target.classList.add('active');}
+function copyAddress(){navigator.clipboard?.writeText(TON_WALLET);toast('📋 Адрес скопирован!','success');}
+function doDeposit(){
+    let a=parseFloat(document.getElementById('depositAmount').value);
+    if(!a||a<0.1){toast('Минимум 0.1 TON','error');return;}
+    if(connectedWallet){
+        toast('🔄 Отправка...');
+        setTimeout(()=>{star+=Math.floor(a*1300);updUI();toast(`✅ +${Math.floor(a*1300)} ⭐`,'success');},2000);
+    }else{
+        navigator.clipboard?.writeText(TON_WALLET);
+        tg?.openTelegramLink('https://t.me/CryptoBot');
+        toast('📋 Отправьте '+a+' TON','success');
+        setTimeout(()=>{star+=Math.floor(a*1300);updUI();toast(`✅ +${Math.floor(a*1300)} ⭐`,'success');},3000);
+    }
+}
+
+function copyRefLink(){
+    navigator.clipboard?.writeText(`https://t.me/${BOT_USERNAME}?start=${refCode}`);
+    toast('📋 Ссылка скопирована!','success');
+}
+</script>
+</body>
+</html>
