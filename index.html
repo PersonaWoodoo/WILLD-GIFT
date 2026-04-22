@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>🎁 VILLD GIFT</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;}
+        :root{
+            --bg:#0c1a2d;--surface:#152642;--surface2:#1e3a5f;
+            --primary:#00d4ff;--accent:#f59e0b;--star:#fbbf24;--ton:#0088cc;
+            --text:#ffffff;--text2:#8b95a5;--border:#2a3a4a;--green:#10b981;--red:#dc2626;
+        }
+        body{
+            font-family:'Inter',sans-serif;background:linear-gradient(135deg,#0c1a2d 0%,#152642 50%,#0c1a2d 100%);
+            color:var(--text);min-height:100vh;overflow-x:hidden;position:relative;
+        }
+        
+        /* ========== СНЕЖНЫЙ ФОН ========== */
+        .snow-background{
+            position:fixed;top:0;left:0;width:100%;height:100%;
+            pointer-events:none;z-index:-1;
+        }
+        .snowflake{
+            position:absolute;background:rgba(255,255,255,0.7);
+            border-radius:50%;opacity:0.7;animation:fall linear infinite;
+        }
+        @keyframes fall{
+            0%{transform:translateY(-10px) rotate(0deg);opacity:0.7;}
+            100%{transform:translateY(100vh) rotate(360deg);opacity:0;}
+        }
+        
+        /* ========== ЗАГРУЗОЧНЫЙ ЭКРАН ========== */
+        .loading-screen{
+            position:fixed;inset:0;background:#0c1a2d;z-index:99999;
+            display:flex;flex-direction:column;align-items:center;justify-content:center;
+            transition:opacity 0.6s,visibility 0.6s;
+        }
+        .loading-screen.hide{opacity:0;visibility:hidden;pointer-events:none;}
+        .letters-wrapper{display:flex;gap:4px;margin-bottom:40px;}
+        .letter{
+            font-family:'Inter',sans-serif;font-size:clamp(36px,10vw,64px);
+            font-weight:900;animation:bounce 1.2s infinite ease-in-out;
+            text-shadow:0 0 20px currentColor;
+        }
+        .letter:nth-child(1){color:#ff0000;animation-delay:0s;}
+        .letter:nth-child(2){color:#ff8800;animation-delay:0.1s;}
+        .letter:nth-child(3){color:#ffdd00;animation-delay:0.2s;}
+        .letter:nth-child(4){color:#00cc44;animation-delay:0.3s;}
+        .letter:nth-child(5){color:#00cccc;animation-delay:0.4s;}
+        .letter:nth-child(6){color:transparent;animation:none;text-shadow:none;}
+        .letter:nth-child(7){color:#0088ff;animation-delay:0.5s;}
+        .letter:nth-child(8){color:#8844ff;animation-delay:0.6s;}
+        .letter:nth-child(9){color:#ff44ff;animation-delay:0.7s;}
+        .letter:nth-child(10){color:#00d4ff;animation-delay:0.8s;}
+        @keyframes bounce{0%,100%{transform:translateY(0);}50%{transform:translateY(-20px);}}
+        .loading-text{
+            font-family:'Inter',sans-serif;font-size:14px;letter-spacing:10px;
+            color:#8b95a5;font-weight:500;text-transform:uppercase;animation:pulse 1.5s infinite;
+        }
+        @keyframes pulse{0%,100%{opacity:0.5;}50%{opacity:1;}}
+        .flash-transition{
+            position:fixed;inset:0;background:#fff;z-index:99998;opacity:0;
+            pointer-events:none;transition:opacity 0.2s;
+        }
+        .flash-transition.active{opacity:1;}
+        
+        /* ========== КОНТЕЙНЕР ========== */
+        .container{
+            max-width:500px;margin:0 auto;min-height:100vh;
+            display:flex;flex-direction:column;position:relative;
+        }
+        
+        /* ========== LIVE УВЕДОМЛЕНИЯ ========== */
+        .live-notifications{
+            background:linear-gradient(90deg,#dc2626 0%,#ef4444 50%,#dc2626 100%);
+            border-radius:0 0 25px 25px;padding:20px;margin-bottom:15px;
+            box-shadow:0 8px 25px rgba(220,38,38,0.4),inset 0 1px 0 rgba(255,255,255,0.2);
+            position:relative;overflow:hidden;transition:all 0.4s ease;
+            border-bottom:3px solid #fbbf24;
+        }
+        .live-notifications.hidden{
+            transform:translateY(-100%);opacity:0;margin-bottom:0;padding:0;height:0;
+        }
+        .live-notifications::before{
+            content:"";position:absolute;top:0;left:-100%;width:100%;height:100%;
+            background:linear-gradient(90deg,transparent,rgba(255,255,255,0.4),transparent);
+            animation:shine 2s infinite;
+        }
+        @keyframes shine{0%{left:-100%;}100%{left:100%;}}
+        .live-header{
+            display:flex;justify-content:center;align-items:center;margin-bottom:15px;
+        }
+        .live-header h2{
+            font-size:22px;font-weight:800;display:flex;align-items:center;gap:12px;
+            text-shadow:0 2px 4px rgba(0,0,0,0.3);
+            background:linear-gradient(90deg,#ffffff,#fef3c7);
+            -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+            letter-spacing:1px;padding:5px 15px;border-radius:50px;
+            background-color:rgba(0,0,0,0.2);border:2px solid rgba(251,191,36,0.3);
+        }
+        .live-pulse{
+            width:14px;height:14px;background:#fff;border-radius:50%;
+            animation:pulse 1.5s infinite;box-shadow:0 0 10px #fff,0 0 20px #fff;
+        }
+        @keyframes pulse{
+            0%{opacity:1;transform:scale(1);box-shadow:0 0 10px #fff,0 0 20px #fff;}
+            50%{opacity:0.7;transform:scale(1.2);box-shadow:0 0 15px #fff,0 0 30px #fff;}
+            100%{opacity:1;transform:scale(1);box-shadow:0 0 10px #fff,0 0 20px #fff;}
+        }
+        .gift-scroll-container{
+            overflow-x:auto;white-space:nowrap;padding-bottom:8px;
+        }
+        .gift-scroll-container::-webkit-scrollbar{height:6px;}
+        .gift-scroll-container::-webkit-scrollbar-track{background:rgba(255,255,255,0.1);border-radius:10px;}
+        .gift-scroll-container::-webkit-scrollbar-thumb{background:linear-gradient(90deg,#fbbf24,#f59e0b);border-radius:10px;}
+        .gift-list{display:inline-flex;gap:15px;}
+        .gift-item{
+            display:inline-flex;align-items:center;background:linear-gradient(135deg,rgba(255,255,255,0.15),rgba(255,255,255,0.05));
+            padding:12px 15px;border-radius:15px;min-width:160px;
+            border:1px solid rgba(251,191,36,0.3);backdrop-filter:blur(10px);
+            box-shadow:0 4px 15px rgba(0,0,0,0.2);transition:transform 0.3s ease;
+        }
+        .gift-item:hover{transform:translateY(-3px);}
+        .gift-icon{
+            background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#78350f;
+            width:42px;height:42px;border-radius:50%;display:flex;align-items:center;
+            justify-content:center;margin-right:12px;font-size:20px;
+            border:2px solid #fff;box-shadow:0 0 10px rgba(251,191,36,0.5);
+        }
+        .gift-info{flex-grow:1;}
+        .gift-name{font-size:16px;font-weight:700;margin-bottom:3px;color:#fef3c7;}
+        .gift-from{font-size:13px;opacity:0.9;color:#fff;}
+        
+        /* ========== ГЛАВНОЕ МЕНЮ ========== */
+        .main-menu{
+            flex-grow:1;padding:0 25px 80px;display:flex;flex-direction:column;
+            align-items:center;justify-content:center;position:relative;width:100%;
+        }
+        .menu-buttons{
+            width:100%;max-width:400px;display:flex;flex-direction:column;
+            gap:30px;position:relative;z-index:1;margin:0 auto;
+        }
+        .menu-button{
+            display:block;width:100%;background:linear-gradient(135deg,rgba(255,255,255,0.15),rgba(255,255,255,0.05));
+            border:3px solid rgba(251,191,36,0.4);border-radius:25px;color:white;
+            font-size:36px;font-weight:900;padding:40px 25px;text-align:center;
+            text-decoration:none;transition:all 0.4s ease;backdrop-filter:blur(15px);
+            box-shadow:0 10px 30px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.2);
+            letter-spacing:2px;text-shadow:0 2px 10px rgba(0,0,0,0.3);
+            position:relative;overflow:hidden;cursor:pointer;
+        }
+        .menu-button::before{
+            content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;
+            background:linear-gradient(90deg,transparent,rgba(255,255,255,0.1),transparent);
+            transition:left 0.7s ease;
+        }
+        .menu-button:hover::before{left:100%;}
+        .menu-button:hover{
+            background:linear-gradient(135deg,rgba(255,255,255,0.2),rgba(255,255,255,0.1));
+            transform:translateY(-8px) scale(1.02);box-shadow:0 15px 40px rgba(0,0,0,0.5);
+            border-color:rgba(251,191,36,0.6);
+        }
+        .menu-button:active{transform:translateY(-3px) scale(1);}
+        .menu-button.cases{background:linear-gradient(135deg,#7c3aed,#4f46e5);border-color:rgba(124,58,237,0.6);}
+        .menu-button.shop{background:linear-gradient(135deg,#0ea5e9,#3b82f6);border-color:rgba(14,165,233,0.6);}
+        
+        /* ========== СТРАНИЦЫ ========== */
+        .page{
+            display:none;padding:25px;padding-bottom:90px;flex-grow:1;
+            animation:fadeIn 0.5s ease;
+        }
+        @keyframes fadeIn{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+        .page.active{display:block;}
+        .page-title{
+            font-size:32px;font-weight:900;margin-bottom:30px;
+            background:linear-gradient(90deg,#fbbf24,#f59e0b);
+            -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+            text-align:center;text-shadow:0 2px 10px rgba(251,191,36,0.3);
+        }
+        .page-content{
+            background:linear-gradient(135deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02));
+            border-radius:25px;padding:30px;border:2px solid rgba(251,191,36,0.2);
+            backdrop-filter:blur(15px);box-shadow:0 10px 30px rgba(0,0,0,0.3);
+        }
+        
+        /* ========== КЕЙСЫ ========== */
+        .cases-grid{
+            display:grid;grid-template-columns:1fr;gap:15px;
+        }
+        .case-card{
+            background:linear-gradient(135deg,rgba(124,58,237,0.2),rgba(79,70,229,0.1));
+            border-radius:20px;padding:20px;border:2px solid rgba(251,191,36,0.3);
+            cursor:pointer;transition:all 0.3s;display:flex;align-items:center;gap:15px;
+        }
+        .case-card:hover{transform:translateY(-5px);border-color:#fbbf24;}
+        .case-icon{font-size:48px;width:70px;text-align:center;}
+        .case-info{flex:1;}
+        .case-name{font-size:20px;font-weight:700;margin-bottom:5px;}
+        .case-price{color:#fbbf24;font-size:18px;font-weight:600;}
+        
+        /* ========== НИЖНЯЯ НАВИГАЦИЯ ========== */
+        .bottom-nav{
+            position:fixed;bottom:0;left:0;right:0;max-width:500px;margin:0 auto;
+            background:rgba(12,26,45,0.95);backdrop-filter:blur(20px);
+            border-top:2px solid rgba(251,191,36,0.3);display:flex;
+            justify-content:space-between;padding:15px 5px 15px 10px;z-index:100;
+            box-shadow:0 -5px 20px rgba(0,0,0,0.3);
+        }
+        .bottom-nav::before{
+            content:'';position:absolute;top:-2px;left:0;right:0;height:2px;
+            background:linear-gradient(90deg,transparent,#fbbf24,transparent);
+        }
+        .nav-button{
+            display:flex;flex-direction:column;align-items:center;background:transparent;
+            border:none;color:rgba(255,255,255,0.7);font-size:13px;padding:10px 8px;
+            border-radius:15px;transition:all 0.3s ease;flex:1;cursor:pointer;
+        }
+        .nav-button.active{
+            color:#fbbf24 !important;background-color:rgba(251,191,36,0.15);
+            transform:translateY(-5px);
+        }
+        .nav-button.active i{color:#fbbf24 !important;transform:scale(1.2);}
+        .nav-button i{font-size:22px;margin-bottom:5px;transition:all 0.3s ease;}
+        .nav-button.cases{color:#a78bfa;}
+        .nav-button.cases.active{color:#fbbf24 !important;}
+        
+        /* ========== BALANCE CARD ========== */
+        .balance-card{
+            background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);
+            border-radius:16px;padding:15px 20px;margin-bottom:20px;
+            display:flex;align-items:center;justify-content:space-between;
+        }
+        .balance-info{display:flex;align-items:center;gap:10px;}
+        .balance-amount{font-size:28px;font-weight:700;color:#FFD700;}
+        .add-btn{
+            background:rgba(255,255,255,0.2);border:none;color:white;
+            padding:10px 18px;border-radius:12px;font-weight:600;cursor:pointer;
+        }
+        
+        @media (max-width:500px){
+            .menu-button{padding:35px 20px;font-size:30px;}
+            .page-title{font-size:28px;}
+            .gift-item{min-width:140px;padding:10px 12px;}
+            .main-menu{padding:0 20px 80px;}
+        }
+        @media (max-width:380px){
+            .menu-button{padding:30px 15px;font-size:26px;}
+            .page-title{font-size:24px;}
+        }
+    </style>
+</head>
+<body>
+
+<!-- СНЕЖНЫЙ ФОН -->
+<div class="snow-background" id="snowflakes-container"></div>
+
+<!-- ЗАГРУЗОЧНЫЙ ЭКРАН -->
+<div class="loading-screen" id="loadingScreen">
+    <div class="letters-wrapper">
+        <span class="letter">V</span><span class="letter">I</span><span class="letter">L</span><span class="letter">L</span><span class="letter">D</span>
+        <span class="letter"> </span><span class="letter">G</span><span class="letter">I</span><span class="letter">F</span><span class="letter">T</span>
+    </div>
+    <div class="loading-text">LOADING</div>
+</div>
+<div class="flash-transition" id="flashTransition"></div>
+
+<!-- MAIN APP -->
+<div id="mainApp" style="display:none;">
+    <div class="container">
+        <!-- LIVE УВЕДОМЛЕНИЯ -->
+        <div class="live-notifications" id="live-notifications">
+            <div class="live-header">
+                <h2><span class="live-pulse"></span>LIVE WIN</h2>
+            </div>
+            <div class="gift-scroll-container">
+                <div class="gift-list" id="gift-list"></div>
+            </div>
+        </div>
+
+        <!-- ГЛАВНОЕ МЕНЮ -->
+        <div class="main-menu" id="main-menu">
+            <!-- БАЛАНС -->
+            <div class="balance-card" style="width:100%;margin-bottom:30px;">
+                <div class="balance-info">
+                    <i class="fas fa-coins" style="color:#FFD700;font-size:24px;"></i>
+                    <span class="balance-amount" id="userBalance">1,500</span>
+                </div>
+                <button class="add-btn" onclick="addFunds()"><i class="fas fa-plus"></i> Пополнить</button>
+            </div>
+            
+            <div class="menu-buttons">
+                <a class="menu-button cases" data-page="cases">КЕЙСЫ</a>
+                <a class="menu-button shop" data-page="shop">МАГАЗИН</a>
+            </div>
+        </div>
+
+        <!-- СТРАНИЦА КЕЙСЫ -->
+        <div class="page" id="cases-page">
+            <h2 class="page-title">🎁 КЕЙСЫ</h2>
+            <div class="page-content">
+                <div class="cases-grid">
+                    <div class="case-card" onclick="openCase('durov')">
+                        <div class="case-icon">🧢</div>
+                        <div class="case-info">
+                            <div class="case-name">DUROV'S CAP</div>
+                            <div class="case-price">50 TON</div>
+                        </div>
+                    </div>
+                    <div class="case-card" onclick="openCase('pepe')">
+                        <div class="case-icon">🐸</div>
+                        <div class="case-info">
+                            <div class="case-name">PLUSH PEPE</div>
+                            <div class="case-price">50 TON</div>
+                        </div>
+                    </div>
+                    <div class="case-card" onclick="openCase('mix')">
+                        <div class="case-icon">🎲</div>
+                        <div class="case-info">
+                            <div class="case-name">MIX CASE</div>
+                            <div class="case-price">25 TON</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- СТРАНИЦА МАГАЗИН -->
+        <div class="page" id="shop-page">
+            <h2 class="page-title">🛍️ МАГАЗИН</h2>
+            <div class="page-content">
+                <p style="font-size:18px;line-height:1.7;color:#e2e8f0;text-align:center;">
+                    Специальные предложения и уникальные товары!
+                </p>
+                <p style="font-size:18px;line-height:1.7;color:#e2e8f0;text-align:center;">
+                    Скоро здесь появятся эксклюзивные наборы.
+                </p>
+            </div>
+        </div>
+
+        <!-- СТРАНИЦА РЕЙТИНГ -->
+        <div class="page" id="rating-page">
+            <h2 class="page-title">🏆 РЕЙТИНГ</h2>
+            <div class="page-content">
+                <p style="font-size:18px;line-height:1.7;color:#e2e8f0;text-align:center;">
+                    Топ игроков и лидеры по выигрышам!
+                </p>
+            </div>
+        </div>
+
+        <!-- СТРАНИЦА КВЕСТЫ -->
+        <div class="page" id="quests-page">
+            <h2 class="page-title">📋 КВЕСТЫ</h2>
+            <div class="page-content">
+                <p style="font-size:18px;line-height:1.7;color:#e2e8f0;text-align:center;">
+                    Ежедневные задания и награды!
+                </p>
+            </div>
+        </div>
+
+        <!-- СТРАНИЦА ПРОФИЛЬ -->
+        <div class="page" id="profile-page">
+            <h2 class="page-title">👤 ПРОФИЛЬ</h2>
+            <div class="page-content">
+                <p style="font-size:18px;line-height:1.7;color:#e2e8f0;text-align:center;">
+                    Ваша статистика и достижения!
+                </p>
+            </div>
+        </div>
+
+        <!-- НИЖНЯЯ НАВИГАЦИЯ -->
+        <nav class="bottom-nav">
+            <button class="nav-button" data-page="rating"><i class="fas fa-chart-line"></i><span>Рейтинг</span></button>
+            <button class="nav-button" data-page="quests"><i class="fas fa-tasks"></i><span>Квесты</span></button>
+            <button class="nav-button active cases" data-page="cases" id="nav-cases"><i class="fas fa-gift"></i><span>Кейсы</span></button>
+            <button class="nav-button" data-page="shop"><i class="fas fa-store"></i><span>Магазин</span></button>
+            <button class="nav-button" data-page="profile"><i class="fas fa-user"></i><span>Профиль</span></button>
+        </nav>
+    </div>
+</div>
+
+<script>
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+    
+    let userData = {balance: 1500, tonBalance: 0.05};
+    let isFirstClick = true;
+    
+    // Снежинки
+    function createSnowflakes() {
+        const container = document.getElementById('snowflakes-container');
+        for (let i = 0; i < 40; i++) {
+            const snowflake = document.createElement('div');
+            snowflake.classList.add('snowflake');
+            snowflake.style.width = `${Math.random()*4+2}px`;
+            snowflake.style.height = snowflake.style.width;
+            snowflake.style.left = `${Math.random()*100}vw`;
+            snowflake.style.animationDuration = `${Math.random()*8+8}s`;
+            snowflake.style.animationDelay = `${Math.random()*5}s`;
+            snowflake.style.opacity = Math.random()*0.4+0.3;
+            container.appendChild(snowflake);
+        }
+    }
+    
+    // LIVE подарки
+    function generateGifts() {
+        const giftList = document.getElementById('gift-list');
+        const gifts = [
+            {name:"Новогодний Стикерпак",icon:"snowflake",from:"Telegram"},
+            {name:"Праздничные Эмодзи",icon:"star",from:"Канал #1"},
+            {name:"Подарочный Premium",icon:"crown",from:"Друг"},
+            {name:"Новогодняя Гифка",icon:"gift",from:"Группа"},
+            {name:"DUROV'S CAP",icon:"user",from:"Павел"},
+            {name:"PLUSH PEPE",icon:"frog",from:"Мем"},
+        ];
+        gifts.forEach(g => {
+            const item = document.createElement('div');
+            item.className = 'gift-item';
+            item.innerHTML = `<div class="gift-icon"><i class="fas fa-${g.icon}"></i></div><div class="gift-info"><div class="gift-name">${g.name}</div><div class="gift-from">от ${g.from}</div></div>`;
+            giftList.appendChild(item);
+        });
+    }
+    
+    // Навигация
+    function setupNavigation() {
+        const mainMenu = document.getElementById('main-menu');
+        const liveNotifications = document.getElementById('live-notifications');
+        const navButtons = document.querySelectorAll('.nav-button, .menu-button');
+        const pages = document.querySelectorAll('.page');
+        
+        function switchPage(pageId) {
+            mainMenu.style.display = 'none';
+            if (isFirstClick) { liveNotifications.classList.add('hidden'); isFirstClick = false; }
+            pages.forEach(p => p.classList.remove('active'));
+            document.getElementById(`${pageId}-page`).classList.add('active');
+            navButtons.forEach(b => b.classList.remove('active', 'cases'));
+            const navBtn = document.querySelector(`.nav-button[data-page="${pageId}"]`);
+            if (navBtn) {
+                navBtn.classList.add('active');
+                if (pageId === 'cases') navBtn.classList.add('cases');
+            }
+        }
+        
+        navButtons.forEach(b => {
+            b.addEventListener('click', function(e) {
+                e.preventDefault();
+                switchPage(this.getAttribute('data-page'));
+            });
+        });
+    }
+    
+    function updateBalance() {
+        document.getElementById('userBalance').textContent = userData.balance.toLocaleString();
+    }
+    
+    function addFunds() { userData.balance += 500; updateBalance(); alert('+500 звёзд!'); }
+    function openCase(c) { alert(`Открываем ${c}!`); }
+    
+    // Загрузка
+    setTimeout(() => {
+        document.getElementById('flashTransition').classList.add('active');
+        setTimeout(() => {
+            document.getElementById('loadingScreen').classList.add('hide');
+            document.getElementById('mainApp').style.display = 'block';
+            setTimeout(() => document.getElementById('flashTransition').classList.remove('active'), 200);
+        }, 250);
+    }, 2000);
+    
+    document.addEventListener('DOMContentLoaded', () => {
+        createSnowflakes();
+        generateGifts();
+        setupNavigation();
+    });
+</script>
+</body>
+  </html>
