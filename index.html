@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>🎁 VILLD GIFT • MEGA MIX</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;}
+        :root{
+            --bg:#0a0a14;--surface:#12121e;--surface2:#1a1a2e;
+            --primary:#ff2d8d;--secondary:#00d4ff;--accent:#ffd700;
+            --text:#ffffff;--text2:#8b9bbf;--border:#2a2a4a;
+            --green:#10b981;--red:#ef4444;
+        }
+        body{
+            font-family:'Inter',sans-serif;
+            background:#0a0a14;
+            color:var(--text);min-height:100vh;overflow-x:hidden;position:relative;
+        }
+        
+        /* ЗВЁЗДНЫЙ ФОН */
+        .stars-background{
+            position:fixed;top:0;left:0;width:100%;height:100%;
+            pointer-events:none;z-index:0;
+            background:radial-gradient(circle at 30% 10%,#1a1a3e 0%,#0a0a14 80%);
+        }
+        .star-particle{
+            position:absolute;color:var(--accent);
+            animation:starFall linear infinite;
+            text-shadow:0 0 8px var(--accent),0 0 15px var(--accent);
+            z-index:0;
+        }
+        @keyframes starFall{
+            0%{transform:translateY(-20px) rotate(0deg) scale(0.5);opacity:0;}
+            10%{opacity:1;transform:translateY(20px) rotate(45deg) scale(1);}
+            90%{opacity:0.8;transform:translateY(90vh) rotate(180deg) scale(0.3);}
+            100%{transform:translateY(100vh) rotate(360deg) scale(0);opacity:0;}
+        }
+        
+        /* ЗАГРУЗОЧНЫЙ ЭКРАН */
+        .loading-screen{
+            position:fixed;inset:0;background:#0a0a14;
+            z-index:99999;display:flex;flex-direction:column;
+            align-items:center;justify-content:center;
+            transition:opacity 0.6s,visibility 0.6s;
+        }
+        .loading-screen.hide{opacity:0;visibility:hidden;pointer-events:none;}
+        .letters-wrapper{display:flex;gap:4px;margin-bottom:40px;}
+        .letter{
+            font-family:'Inter',sans-serif;font-size:clamp(36px,10vw,64px);
+            font-weight:900;animation:letterBounce 1.2s infinite ease-in-out;
+            text-shadow:0 0 20px currentColor;
+        }
+        .letter:nth-child(1){color:#ff0000;animation-delay:0s;}
+        .letter:nth-child(2){color:#ff8800;animation-delay:0.1s;}
+        .letter:nth-child(3){color:#ffdd00;animation-delay:0.2s;}
+        .letter:nth-child(4){color:#00cc44;animation-delay:0.3s;}
+        .letter:nth-child(5){color:#00cccc;animation-delay:0.4s;}
+        .letter:nth-child(6){color:transparent;animation:none;text-shadow:none;}
+        .letter:nth-child(7){color:#0088ff;animation-delay:0.5s;}
+        .letter:nth-child(8){color:#8844ff;animation-delay:0.6s;}
+        .letter:nth-child(9){color:#ff44ff;animation-delay:0.7s;}
+        .letter:nth-child(10){color:#00d4ff;animation-delay:0.8s;}
+        @keyframes letterBounce{0%,100%{transform:translateY(0);}50%{transform:translateY(-20px);}}
+        .loading-text{font-family:'Inter',sans-serif;font-size:14px;letter-spacing:10px;color:#8b9bbf;font-weight:500;text-transform:uppercase;animation:pulse 1.5s infinite;}
+        @keyframes pulse{0%,100%{opacity:0.5;}50%{opacity:1;}}
+        .flash-transition{position:fixed;inset:0;background:#ffffff;z-index:99998;opacity:0;pointer-events:none;transition:opacity 0.2s;}
+        .flash-transition.active{opacity:1;}
+        
+        /* MAIN APP */
+        #mainApp{display:none;position:relative;z-index:1;}
+        #mainApp.show{display:block;}
+        
+        .container{max-width:500px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;position:relative;z-index:1;}
+        
+        .win-ticker{background:linear-gradient(90deg,#ff2d8d,#8b5cf6);padding:8px 0;overflow:hidden;white-space:nowrap;}
+        .ticker-content{display:inline-block;animation:ticker 25s linear infinite;color:white;font-size:13px;}
+        .ticker-item{display:inline-block;margin-right:40px;}
+        @keyframes ticker{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+        
+        .header{display:flex;align-items:center;justify-content:space-between;padding:16px;border-bottom:1px solid var(--border);}
+        .balance-display{display:flex;align-items:center;gap:6px;background:var(--surface);padding:10px 16px;border-radius:25px;font-weight:700;font-size:16px;}
+        .deposit-btn{background:linear-gradient(135deg,#00d4ff,#0088ff);border:none;color:white;padding:10px 18px;border-radius:25px;font-weight:700;font-size:14px;cursor:pointer;}
+        
+        .main-content{flex:1;padding:16px;padding-bottom:90px;}
+        .section-title{font-size:18px;font-weight:700;margin:20px 0 12px;display:flex;align-items:center;gap:8px;}
+        
+        .cases-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;}
+        .case-card{background:var(--surface);border-radius:20px;padding:16px;text-align:center;border:1px solid var(--border);cursor:pointer;transition:0.2s;}
+        .case-card:active{transform:scale(0.97);}
+        .case-card-image{width:100%;aspect-ratio:1;border-radius:12px;overflow:hidden;margin-bottom:10px;background:var(--surface2);}
+        .case-card-image img{width:100%;height:100%;object-fit:cover;}
+        .case-card-name{font-weight:700;font-size:14px;margin-bottom:6px;}
+        .case-card-price{color:var(--accent);font-weight:700;font-size:16px;}
+        
+        .roulette-page{display:none;padding-bottom:90px;}
+        .roulette-page.active{display:block;}
+        .back-btn{background:none;border:none;color:var(--primary);font-size:22px;cursor:pointer;margin-right:12px;}
+        .roulette-title{font-size:20px;font-weight:800;background:linear-gradient(135deg,var(--primary),var(--secondary));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+        
+        .roulette-wrapper{position:relative;margin:20px 0;overflow:hidden;border-radius:16px;background:var(--surface);border:2px solid var(--border);}
+        .roulette-pointer{position:absolute;top:0;bottom:0;left:50%;transform:translateX(-50%);width:3px;background:var(--primary);z-index:10;box-shadow:0 0 15px var(--primary);}
+        .roulette-track{display:flex;transition:none;will-change:transform;}
+        .roulette-slot{flex-shrink:0;width:130px;padding:8px;text-align:center;}
+        .roulette-slot-image{width:100%;aspect-ratio:1;border-radius:12px;overflow:hidden;background:var(--surface2);margin-bottom:6px;}
+        .roulette-slot-image img{width:100%;height:100%;object-fit:cover;}
+        .roulette-slot-name{font-size:11px;font-weight:600;color:var(--text2);}
+        
+        .spin-btn{width:100%;padding:16px;border:none;border-radius:16px;font-weight:800;font-size:18px;cursor:pointer;background:linear-gradient(135deg,var(--primary),#ff6b9d);color:white;margin:10px 0;}
+        .spin-btn:disabled{opacity:0.5;}
+        
+        .win-popup{display:none;text-align:center;background:var(--surface);border-radius:20px;padding:20px;border:2px solid var(--accent);margin-top:15px;}
+        .win-popup img{width:100px;height:100px;border-radius:12px;margin-bottom:10px;}
+        .win-popup-name{font-size:18px;font-weight:700;margin-bottom:4px;}
+        .win-popup-price{color:var(--accent);font-size:24px;font-weight:800;margin-bottom:15px;}
+        .win-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;}
+        .win-btn{padding:12px 20px;border:none;border-radius:12px;font-weight:700;font-size:14px;cursor:pointer;}
+        .win-btn.exchange{background:var(--accent);color:#000;}
+        .win-btn.sell{background:var(--green);color:#fff;}
+        .win-btn.open-again{background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff;}
+        .win-btn.close-case{background:var(--surface2);color:var(--text);border:1px solid var(--border);}
+        
+        .contents-block{background:var(--surface);border-radius:16px;padding:14px;margin-top:15px;max-height:250px;overflow-y:auto;}
+        .content-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);}
+        .content-row-left{display:flex;align-items:center;gap:8px;}
+        .content-thumb{width:36px;height:36px;border-radius:8px;overflow:hidden;}
+        .content-thumb img{width:100%;height:100%;object-fit:cover;}
+        .content-row-name{font-size:13px;}
+        .content-row-price{color:var(--accent);font-weight:600;font-size:13px;}
+        
+        .history-block{background:var(--surface);border-radius:16px;padding:14px;margin-top:15px;max-height:200px;overflow-y:auto;}
+        
+        .bottom-nav{position:fixed;bottom:0;left:0;right:0;max-width:500px;margin:0 auto;background:rgba(21,21,40,0.98);border-top:1px solid var(--border);display:flex;justify-content:space-around;padding:10px 5px calc(env(safe-area-inset-bottom)+8px);z-index:100;}
+        .nav-btn{display:flex;flex-direction:column;align-items:center;background:none;border:none;color:var(--text2);font-size:11px;cursor:pointer;padding:4px;}
+        .nav-btn.active{color:var(--primary);}
+        .nav-btn i{font-size:20px;margin-bottom:2px;}
+        
+        .toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:var(--surface2);padding:12px 24px;border-radius:40px;z-index:10001;font-weight:600;border:1px solid var(--primary);display:none;}
+    </style>
+</head>
+<body>
+
+<!-- ЗВЁЗДНЫЙ ФОН -->
+<div class="stars-background" id="starsContainer"></div>
+
+<!-- ЗАГРУЗОЧНЫЙ ЭКРАН -->
+<div class="loading-screen" id="loadingScreen">
+    <div class="letters-wrapper">
+        <span class="letter">V</span><span class="letter">I</span><span class="letter">L</span><span class="letter">L</span><span class="letter">D</span>
+        <span class="letter"> </span><span class="letter">G</span><span class="letter">I</span><span class="letter">F</span><span class="letter">T</span>
+    </div>
+    <div class="loading-text">LOADING</div>
+</div>
+<div class="flash-transition" id="flashTransition"></div>
+
+<!-- MAIN APP -->
+<div id="mainApp">
+    <div class="container">
+        <div class="win-ticker"><div class="ticker-content" id="tickerContent">
+            <span class="ticker-item">🎉 Игрок выиграл Кирпич #15 (1000 ⭐)</span>
+            <span class="ticker-item">🎉 Игрок выиграл Кирпич #10 (150 ⭐)</span>
+            <span class="ticker-item">🎉 Игрок выиграл Кирпич #1 (50 ⭐)</span>
+        </div></div>
+        
+        <div class="header">
+            <div class="balance-display">
+                <span>⭐</span> <span id="starBalance">10000</span>
+            </div>
+            <button class="deposit-btn" onclick="deposit()">+ Пополнить</button>
+        </div>
+        
+        <!-- MAIN PAGE -->
+        <div class="main-content" id="mainPage">
+            <div class="section-title">🔥 Кейсы</div>
+            <div class="cases-grid">
+                <div class="case-card" onclick="openCase('mix')">
+                    <div class="case-card-image"><img src="https://i.supaimg.com/435c46f7-76b1-41ba-82e2-1f1a0a964f2c/e58957eb-05b7-4aac-bf9a-70831c36c347.jpg" alt="MEGA MIX"></div>
+                    <div class="case-card-name">🧱 MEGA MIX</div>
+                    <div class="case-card-price">500 ⭐</div>
+                </div>
+                <div class="case-card">
+                    <div class="case-card-image"><img src="https://i.supaimg.com/435c46f7-76b1-41ba-82e2-1f1a0a964f2c/db0a1c21-2b87-40b0-8939-6ffa6a0df1f6.jpg" alt="PREMIUM"></div>
+                    <div class="case-card-name">🌟 PREMIUM</div>
+                    <div class="case-card-price">300 ⭐</div>
+                </div>
+            </div>
+            
+            <!-- ИСТОРИЯ -->
+            <div class="history-block" id="historyBlock">
+                <h4 style="margin-bottom:10px;">📋 История</h4>
+                <div id="historyList" style="color:var(--text2);font-size:13px;">Пока пусто...</div>
+            </div>
+        </div>
+        
+        <!-- ROULETTE PAGE -->
+        <div class="roulette-page" id="roulettePage">
+            <div style="display:flex;align-items:center;padding:16px;">
+                <button class="back-btn" onclick="closeCase()"><i class="fas fa-arrow-left"></i></button>
+                <div class="roulette-title" id="rouletteTitle">🧱 MEGA MIX</div>
+            </div>
+            
+            <div style="padding:0 16px;">
+                <div class="roulette-wrapper" id="rouletteWrapper">
+                    <div class="roulette-pointer"></div>
+                    <div class="roulette-track" id="rouletteTrack"></div>
+                </div>
+                
+                <button class="spin-btn" id="spinBtn" onclick="spinRoulette()">🎰 КРУТИТЬ (500 ⭐)</button>
+                
+                <div class="win-popup" id="winPopup">
+                    <img id="winImage" src="" alt="">
+                    <div class="win-popup-name" id="winName"></div>
+                    <div class="win-popup-price" id="winPrice"></div>
+                    <div class="win-actions">
+                        <button class="win-btn exchange" onclick="exchangeGift()">💱 Обменять</button>
+                        <button class="win-btn sell" onclick="sellGift()">💰 Продать</button>
+                        <button class="win-btn open-again" onclick="openAgain()">🎰 Открыть ещё</button>
+                        <button class="win-btn close-case" onclick="closeCaseFromWin()">✖ Закрыть</button>
+                    </div>
+                </div>
+                
+                <div class="contents-block" id="contentsBlock">
+                    <div style="font-weight:700;margin-bottom:8px;">📦 Содержание кейса</div>
+                    <div id="contentsList"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+    <button class="nav-btn active"><i class="fas fa-gift"></i>Подарки</button>
+    <button class="nav-btn"><i class="fas fa-trophy"></i>Лидеры</button>
+    <button class="nav-btn"><i class="fas fa-gamepad"></i>Игры</button>
+    <button class="nav-btn"><i class="fas fa-users"></i>Друзья</button>
+    <button class="nav-btn"><i class="fas fa-star"></i>Бонусы</button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+    const tg=window.Telegram.WebApp;tg.expand();
+    let balance=10000,isSpinning=!1;
+    const SPIN_COST=500;
+    const SLOT_WIDTH=130;
+    
+    let currentWin=null;
+    let history=[]; // История выигрышей
+    
+    const GIFTS=[
+        {name:"Кирпич #1",price:50,img:"https://i.supaimg.com/435c46f7-76b1-41ba-82e2-1f1a0a964f2c/6bf7a40a-6baa-4727-b64a-9a5470ac2b29.jpg"},
+        {name:"Кирпич #2",price:60,img:"https://i.supaimg.com/435c46f7-76b1-41ba-82e2-1f1a0a964f2c/9d23a324-06c0-44a6-9f3f-5f1e1e5e4d65.jpg"},
+        {name:"Кирпич #3",price:60,img:"https://i.supaimg.com/435c46f7-76b1-41ba-82e2-1f1a0a964f2c/6a755c3e-43e4-4e2a-9f3b-2dd54d3c2b88.jpg"},
+        {name:"Кирпич #4",price:60,img:"https://i.supaimg.com/435c46f7-76b1-41ba-82e2-1f1a0a964f2c/9e9d81a2-f4e1-4b6a-9e40-5cda7facfedc.jpg"},
+        {name:"Кирпич #5",price:70,img:"https://i.supaimg.com/435c46f7-76b1-41ba-82e2-1f1a0a964f2c/2602386e-516b-4fbb-9483-3eb86ab7e4d2.jpg"},
+        {name:"Кирпич #6",price:70,img:"https://i.supaimg.com/435c46f7-76b1-41ba-82e2-1f1a0a964f2c/26aee226-2be3-41a4-8d55-7d8ff155a0ef.jpg"},
+        {name:"Кирпич #7",price:80,img:"https://i.supaimg.com/435c46f7-76b1-41ba-82e2-1f1a0a964f2c/6ed914fd-6d5a-419c-90bd-977f4ba3a4db.jpg"},
+        {name:"Кирпич #8",price:90,img:"https://i.supaimg.com/435c46f7-76b1-41ba-82e2-1f1a0a964f2c/7810e6e7-ae4f-4887-b38e-9fdfd27369a1.jpg"},
+        {name:"Кирпич #9",price:100,img:"https://i.supaimg.com/435c46f7-76b1-41ba-82e2-1f1a0a964f2c/f8bf2bcb-9f14-4477-b3cd-ba6f28a0e1f1.jpg"},
+        {name:"Кирпич #10",price:150,img:"https://i.supaimg.com/435c46f7-76b1-41ba-82e2-1f1a0a964f2c/340f0d27-73db-4e04-a9dd-17eb070a33e5.jpg"},
+        {name:"Кирпич #11",price:200,img:"https://i.supaimg.com/435c46f7-76b1-41ba-82e2-1f1a0a964f2c/74e4a2be-8c0e-4dc8-b2de-9a6fea40c5be.jpg"},
+        {name:"Кирпич #12",price:300,img:"https://i.supaimg.com/435c46f7-76b1-41ba-82e2-1f1a0a964f2c/2e0a13e6-bf96-4d75-8d68-54f4e4080977.jpg"},
+        {name:"Кирпич #13",price:500,img:"https://i.supaimg.com/435c46f7-76b1-41ba-82e2-1f1a0a964f2c/8e5a5de0-133b-4e10-a7d5-8e25c0425c44.jpg"},
+        {name:"Кирпич #14",price:750,img:"https://i.supaimg.com/435c46f7-76b1-41ba-82e2-1f1a0a964f2c/b56a3b14-4309-4ae3-9a47-9a2dab6d8687.jpg"},
+        {name:"Кирпич #15",price:1000,img:"https://i.supaimg.com/435c46f7-76b1-41ba-82e2-1f1a0a964f2c/db0a1c21-2b87-40b0-8939-6ffa6a0df1f6.jpg"}
+    ];
+    
+    let extendedGifts=[...GIFTS,...GIFTS,...GIFTS];
+    
+    function createStars(){const c=document.getElementById('starsContainer');const t=['⭐','🌟','✨','💫'];for(let i=0;i<50;i++){let s=document.createElement('div');s.className='star-particle';s.textContent=t[Math.floor(Math.random()*t.length)];s.style.left=Math.random()*100+'vw';s.style.fontSize=(Math.random()*16+10)+'px';s.style.animationDuration=(Math.random()*15+10)+'s';s.style.animationDelay=(Math.random()*10)+'s';c.appendChild(s);}}
+    
+    function updateUI(){document.getElementById('starBalance').textContent=balance;}
+    function deposit(){balance+=500;updateUI();}
+    
+    function addToHistory(gift){
+        history.unshift({name:gift.name,price:gift.price,time:new Date().toLocaleTimeString()});
+        if(history.length>20)history.pop();
+        updateHistoryUI();
+        // Обновляем тикер
+        let h='';history.slice(0,5).forEach(w=>{h+=`<span class="ticker-item">🎉 Выиграл ${w.name} (${w.price} ⭐)</span>`;});
+        document.getElementById('tickerContent').innerHTML=h+h;
+    }
+    
+    function updateHistoryUI(){
+        const container=document.getElementById('historyList');
+        if(history.length===0){
+            container.innerHTML='<span style="color:var(--text2);">Пока пусто...</span>';
+            return;
+        }
+        let html='';
+        history.forEach(g=>{
+            html+=`
+                <div class="content-row">
+                    <div class="content-row-left">
+                        <span class="content-row-name">${g.name}</span>
+                    </div>
+                    <div style="display:flex;gap:12px;align-items:center;">
+                        <span style="font-size:11px;color:var(--text2);">${g.time}</span>
+                        <span class="content-row-price">${g.price} ⭐</span>
+                    </div>
+                </div>
+            `;
+        });
+        container.innerHTML=html;
+    }
+    
+    function openCase(type){
+        if(type==='mix'){
+            document.getElementById('rouletteTitle').textContent='🧱 MEGA MIX';
+            document.getElementById('spinBtn').textContent='🎰 КРУТИТЬ (500 ⭐)';
+        }
+        buildRoulette();
+        buildContentsList();
+        document.getElementById('winPopup').style.display='none';
+        document.getElementById('spinBtn').style.display='block';
+        document.getElementById('spinBtn').disabled=!1;
+        currentWin=null;
+        document.getElementById('mainPage').style.display='none';
+        document.getElementById('roulettePage').classList.add('active');
+    }
+    
+    function closeCase(){
+        document.getElementById('roulettePage').classList.remove('active');
+        document.getElementById('mainPage').style.display='block';
+    }
+    
+    function closeCaseFromWin(){
+        document.getElementById('winPopup').style.display='none';
+        document.getElementById('spinBtn').style.display='block';
+        document.getElementById('spinBtn').disabled=!1;
+        currentWin=null;
+        closeCase();
+    }
+    
+    function buildRoulette(){
+        const track=document.getElementById('rouletteTrack');
+        track.innerHTML='';
+        extendedGifts.forEach((g,i)=>{
+            const slot=document.createElement('div');
+            slot.className='roulette-slot';
+            slot.innerHTML=`
+                <div class="roulette-slot-image"><img src="${g.img}" alt="${g.name}" loading="lazy"></div>
+                <div class="roulette-slot-name">${g.name}</div>
+            `;
+            track.appendChild(slot);
+        });
+        const wrapper=document.getElementById('rouletteWrapper');
+        const offset=(wrapper.clientWidth/2)-(SLOT_WIDTH/2);
+        track.style.transform=`translateX(${offset}px)`;
+        track.dataset.position=offset;
+    }
+    
+    function buildContentsList(){
+        const container=document.getElementById('contentsList');
+        let html='';
+        GIFTS.forEach(g=>{
+            html+=`
+                <div class="content-row">
+                    <div class="content-row-left">
+                        <div class="content-thumb"><img src="${g.img}" alt="${g.name}"></div>
+                        <span class="content-row-name">${g.name}</span>
+                    </div>
+                    <span class="content-row-price">${g.price} ⭐</span>
+                </div>
+            `;
+        });
+        container.innerHTML=html;
+    }
+    
+    function spinRoulette(){
+        if(isSpinning)return;
+        if(balance<SPIN_COST){showToast('Недостаточно звёзд!');return;}
+        
+        balance-=SPIN_COST;updateUI();isSpinning=!0;
+        document.getElementById('spinBtn').disabled=!0;
+        document.getElementById('winPopup').style.display='none';
+        currentWin=null;
+        
+        const winIndex=Math.floor(Math.random()*GIFTS.length);
+        const win=GIFTS[winIndex];
+        const targetSlot=GIFTS.length+winIndex;
+        const targetOffset=-(targetSlot*SLOT_WIDTH)+(document.getElementById('rouletteWrapper').clientWidth/2)-(SLOT_WIDTH/2);
+        
+        const track=document.getElementById('rouletteTrack');
+        const startPos=parseFloat(track.dataset.position)||0;
+        const distance=targetOffset-startPos;
+        const extraSpins=Math.floor(Math.random()*3+2)*GIFTS.length*SLOT_WIDTH;
+        const totalDistance=distance-extraSpins;
+        const duration=4000+Math.random()*2000;
+        const startTime=Date.now();
+        
+        function animate(){
+            const elapsed=Date.now()-startTime;
+            const progress=Math.min(elapsed/duration,1);
+            const eased=1-Math.pow(1-progress,3);
+            const currentPos=startPos+totalDistance*eased;
+            track.style.transform=`translateX(${currentPos}px)`;
+            track.dataset.position=currentPos;
+            
+            if(progress<1){
+                requestAnimationFrame(animate);
+            }else{
+                currentWin=win;
+                document.getElementById('winImage').src=win.img;
+                document.getElementById('winName').textContent=win.name;
+                document.getElementById('winPrice').textContent=win.price+' ⭐';
+                document.getElementById('winPopup').style.display='block';
+                document.getElementById('spinBtn').style.display='none';
+                isSpinning=!1;
+                addToHistory(win);
+                showToast(`🎉 Выиграл ${win.name}!`);
+            }
+        }
+        requestAnimationFrame(animate);
+    }
+    
+    function openAgain(){
+        document.getElementById('winPopup').style.display='none';
+        document.getElementById('spinBtn').style.display='block';
+        document.getElementById('spinBtn').disabled=!1;
+        currentWin=null;
+        buildRoulette();
+    }
+    
+    function exchangeGift(){
+        if(!currentWin)return;
+        balance+=Math.floor(currentWin.price*0.8);
+        updateUI();
+        showToast(`💱 Обменяно! +${Math.floor(currentWin.price*0.8)} ⭐`);
+        document.getElementById('winPopup').style.display='none';
+        document.getElementById('spinBtn').style.display='block';
+        document.getElementById('spinBtn').disabled=!1;
+        currentWin=null;
+        buildRoulette();
+    }
+    
+    function sellGift(){
+        if(!currentWin)return;
+        balance+=Math.floor(currentWin.price*0.5);
+        updateUI();
+        showToast(`💰 Продано! +${Math.floor(currentWin.price*0.5)} ⭐`);
+        // НЕ добавляем в инвентарь, только звёзды и история
+        document.getElementById('winPopup').style.display='none';
+        document.getElementById('spinBtn').style.display='block';
+        document.getElementById('spinBtn').disabled=!1;
+        currentWin=null;
+        buildRoulette();
+    }
+    
+    function showToast(msg){
+        const t=document.getElementById('toast');
+        t.textContent=msg;t.style.display='block';
+        setTimeout(()=>t.style.display='none',2000);
+    }
+    
+    // INIT
+    createStars();
+    updateUI();
+    document.getElementById('mainPage').style.display='block';
+    
+    setTimeout(()=>{
+        document.getElementById('flashTransition').classList.add('active');
+        setTimeout(()=>{
+            document.getElementById('loadingScreen').classList.add('hide');
+            document.getElementById('mainApp').classList.add('show');
+            setTimeout(()=>document.getElementById('flashTransition').classList.remove('active'),200);
+        },250);
+    },2500);
+</script>
+</body>
+                                                             </html>
