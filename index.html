@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>🎁 VILLD GIFT • ALL SYSTEMS</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;}
+        :root{
+            --bg:#0c1a2d;--surface:#152642;--surface2:#1e3a5f;
+            --primary:#00d4ff;--accent:#f59e0b;--star:#fbbf24;--ton:#0088cc;
+            --text:#ffffff;--text2:#8b95a5;--border:#2a3a4a;--green:#10b981;--red:#dc2626;
+        }
+        body{
+            font-family:'Inter',sans-serif;background:linear-gradient(135deg,#0c1a2d 0%,#152642 50%,#0c1a2d 100%);
+            color:var(--text);min-height:100vh;overflow-x:hidden;position:relative;
+        }
+        .snow-background{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:-1;}
+        .snowflake{position:absolute;background:rgba(255,255,255,0.7);border-radius:50%;opacity:0.7;animation:fall linear infinite;}
+        @keyframes fall{0%{transform:translateY(-10px) rotate(0deg);opacity:0.7;}100%{transform:translateY(100vh) rotate(360deg);opacity:0;}}
+        
+        .loading-screen{position:fixed;inset:0;background:#0c1a2d;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity 0.6s,visibility 0.6s;}
+        .loading-screen.hide{opacity:0;visibility:hidden;pointer-events:none;}
+        .letters-wrapper{display:flex;gap:4px;margin-bottom:40px;}
+        .letter{font-family:'Inter',sans-serif;font-size:clamp(36px,10vw,64px);font-weight:900;animation:bounce 1.2s infinite ease-in-out;text-shadow:0 0 20px currentColor;}
+        .letter:nth-child(1){color:#ff0000;animation-delay:0s;}
+        .letter:nth-child(2){color:#ff8800;animation-delay:0.1s;}
+        .letter:nth-child(3){color:#ffdd00;animation-delay:0.2s;}
+        .letter:nth-child(4){color:#00cc44;animation-delay:0.3s;}
+        .letter:nth-child(5){color:#00cccc;animation-delay:0.4s;}
+        .letter:nth-child(6){color:transparent;animation:none;text-shadow:none;}
+        .letter:nth-child(7){color:#0088ff;animation-delay:0.5s;}
+        .letter:nth-child(8){color:#8844ff;animation-delay:0.6s;}
+        .letter:nth-child(9){color:#ff44ff;animation-delay:0.7s;}
+        .letter:nth-child(10){color:#00d4ff;animation-delay:0.8s;}
+        @keyframes bounce{0%,100%{transform:translateY(0);}50%{transform:translateY(-20px);}}
+        .loading-text{font-family:'Inter',sans-serif;font-size:14px;letter-spacing:10px;color:#8b95a5;font-weight:500;text-transform:uppercase;animation:pulse 1.5s infinite;}
+        @keyframes pulse{0%,100%{opacity:0.5;}50%{opacity:1;}}
+        .flash-transition{position:fixed;inset:0;background:#fff;z-index:99998;opacity:0;pointer-events:none;transition:opacity 0.2s;}
+        .flash-transition.active{opacity:1;}
+        
+        .container{max-width:500px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;position:relative;}
+        
+        .bottom-nav{position:fixed;bottom:0;left:0;right:0;max-width:500px;margin:0 auto;background:rgba(12,26,45,0.95);backdrop-filter:blur(20px);border-top:2px solid rgba(251,191,36,0.3);display:flex;justify-content:space-around;padding:12px 5px calc(env(safe-area-inset-bottom)+8px);z-index:100;}
+        .nav-button{display:flex;flex-direction:column;align-items:center;background:transparent;border:none;color:rgba(255,255,255,0.7);font-size:11px;padding:6px 4px;border-radius:12px;transition:all 0.3s;cursor:pointer;min-width:55px;}
+        .nav-button.active{color:#fbbf24 !important;background-color:rgba(251,191,36,0.15);transform:translateY(-3px);}
+        .nav-button i{font-size:20px;margin-bottom:3px;}
+        
+        .page{display:none;padding:20px 16px 90px;flex-grow:1;animation:fadeIn 0.4s ease;}
+        @keyframes fadeIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+        .page.active{display:block;}
+        .page-title{font-size:26px;font-weight:800;margin-bottom:20px;background:linear-gradient(90deg,#fbbf24,#f59e0b);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-align:center;}
+        
+        .balance-card{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border-radius:16px;padding:15px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;}
+        .balance-amount{font-size:24px;font-weight:700;color:#FFD700;}
+        .add-btn{background:rgba(255,255,255,0.2);border:none;color:white;padding:10px 16px;border-radius:12px;font-weight:600;cursor:pointer;}
+        
+        .cases-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
+        .case-card{background:linear-gradient(135deg,rgba(124,58,237,0.2),rgba(79,70,229,0.1));border-radius:16px;padding:16px;border:2px solid rgba(251,191,36,0.3);cursor:pointer;transition:all 0.3s;text-align:center;}
+        .case-icon{font-size:44px;margin-bottom:10px;}
+        .case-name{font-size:16px;font-weight:700;margin-bottom:5px;}
+        .case-price{color:var(--star);font-weight:700;}
+        
+        .profile-header{text-align:center;padding:20px;background:linear-gradient(135deg,var(--surface),var(--surface2));border-radius:20px;margin-bottom:15px;}
+        .profile-avatar{width:80px;height:80px;border-radius:50%;margin:0 auto 15px;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;font-size:36px;color:#000;background-size:cover;}
+        .profile-name{font-size:20px;font-weight:700;}
+        .profile-username{color:var(--primary);font-size:14px;}
+        .profile-id{color:var(--text2);font-size:12px;}
+        
+        .profile-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:15px 0;}
+        .profile-tab{flex:0 0 calc(25% - 6px);padding:10px 5px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;color:var(--text2);font-weight:600;font-size:11px;cursor:pointer;text-align:center;}
+        .profile-tab.active{background:var(--primary);color:#000;border-color:var(--primary);}
+        
+        .ref-container{background:var(--surface);border-radius:16px;padding:20px;margin-top:15px;}
+        .ref-link{background:var(--surface2);padding:12px;border-radius:12px;font-family:monospace;font-size:13px;word-break:break-all;margin:10px 0;}
+        .ref-stats{display:flex;justify-content:center;gap:30px;margin:15px 0;}
+        
+        .ai-chat{background:var(--surface);border-radius:16px;padding:15px;height:300px;overflow-y:auto;margin-bottom:10px;}
+        .ai-message{background:var(--surface2);padding:10px;border-radius:12px;margin-bottom:8px;max-width:80%;}
+        .ai-message.user{background:var(--primary);color:#000;margin-left:auto;}
+        
+        .btn{width:100%;padding:14px;border:none;border-radius:12px;font-weight:700;font-size:15px;cursor:pointer;background:linear-gradient(135deg,var(--primary),var(--accent));color:#000;margin:5px 0;}
+        .btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border);}
+        
+        .toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:var(--surface2);padding:12px 24px;border-radius:40px;z-index:10001;font-weight:600;}
+        .toast.success{background:var(--green);color:white;}
+    </style>
+</head>
+<body>
+
+<div class="snow-background" id="snowflakes-container"></div>
+
+<div class="loading-screen" id="loadingScreen">
+    <div class="letters-wrapper">
+        <span class="letter">V</span><span class="letter">I</span><span class="letter">L</span><span class="letter">L</span><span class="letter">D</span>
+        <span class="letter"> </span><span class="letter">G</span><span class="letter">I</span><span class="letter">F</span><span class="letter">T</span>
+    </div>
+    <div class="loading-text">LOADING</div>
+</div>
+<div class="flash-transition" id="flashTransition"></div>
+
+<div id="mainApp" style="display:none;">
+    <div class="container">
+        <!-- ГЛАВНАЯ -->
+        <div class="page active" id="home-page">
+            <div class="balance-card">
+                <div><i class="fas fa-coins" style="color:#FFD700;"></i> <span class="balance-amount" id="homeStarBalance">1000</span></div>
+                <div style="display:flex;gap:8px;">
+                    <span style="color:var(--ton);">💎 <span id="homeTonBalance">0</span></span>
+                    <button class="add-btn" onclick="showPage('deposit')"><i class="fas fa-plus"></i> Пополнить</button>
+                </div>
+            </div>
+            <h3 style="margin:20px 0 10px;">🔥 Популярные кейсы</h3>
+            <div class="cases-grid">
+                <div class="case-card" onclick="openCase('starter')"><div class="case-icon">🌸</div><div class="case-name">СТАРТОВЫЙ</div><div class="case-price">50 ⭐</div></div>
+                <div class="case-card" onclick="openCase('premium')"><div class="case-icon">🌹</div><div class="case-name">ПРЕМИУМ</div><div class="case-price">150 ⭐</div></div>
+                <div class="case-card" onclick="openCase('vip')"><div class="case-icon">👑</div><div class="case-name">VIP</div><div class="case-price">300 ⭐</div></div>
+                <div class="case-card" onclick="showPage('cases')"><div class="case-icon">📦</div><div class="case-name">ВСЕ КЕЙСЫ</div><div class="case-price">→</div></div>
+            </div>
+        </div>
+
+        <!-- КЕЙСЫ -->
+        <div class="page" id="cases-page">
+            <h2 class="page-title">🎁 КЕЙСЫ</h2>
+            <div class="cases-grid" id="allCasesGrid"></div>
+        </div>
+
+        <!-- ПРОФИЛЬ -->
+        <div class="page" id="profile-page">
+            <h2 class="page-title">👤 ПРОФИЛЬ</h2>
+            <div class="profile-header">
+                <div class="profile-avatar" id="profileAvatar">👤</div>
+                <div class="profile-name" id="profileName">Игрок</div>
+                <div class="profile-username" id="profileUsername">@username</div>
+                <div class="profile-id" id="profileId">ID: 000000</div>
+            </div>
+            
+            <div class="profile-tabs">
+                <button class="profile-tab active" onclick="switchProfileTab('inventory')">🎒 Инвентарь</button>
+                <button class="profile-tab" onclick="switchProfileTab('promo')">🎫 Промокод</button>
+                <button class="profile-tab" onclick="switchProfileTab('stats')">📊 Статистика</button>
+                <button class="profile-tab" onclick="switchProfileTab('achievements')">🏆 Достижения</button>
+                <button class="profile-tab" onclick="switchProfileTab('history')">💳 История</button>
+                <button class="profile-tab" onclick="switchProfileTab('ref')">👥 Рефералы</button>
+                <button class="profile-tab" onclick="switchProfileTab('custom')">🎨 Кастомизация</button>
+                <button class="profile-tab" onclick="switchProfileTab('settings')">⚙️ Настройки</button>
+                <button class="profile-tab" onclick="switchProfileTab('ai')">🤖 AI Помощник</button>
+            </div>
+            
+            <div id="profileInventoryTab"><p style="color:var(--text2);text-align:center;padding:20px;">Инвентарь пуст</p></div>
+            <div id="profilePromoTab" style="display:none;"><input type="text" id="promoInput" placeholder="Введите промокод" style="width:100%;padding:14px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;color:white;margin:10px 0;"><button class="btn" onclick="applyPromo()">🎫 АКТИВИРОВАТЬ</button></div>
+            <div id="profileStatsTab" style="display:none;"><p style="color:var(--text2);text-align:center;padding:20px;">Статистика</p></div>
+            <div id="profileAchievementsTab" style="display:none;"><p style="color:var(--text2);text-align:center;padding:20px;">Достижения</p></div>
+            <div id="profileHistoryTab" style="display:none;"><p style="color:var(--text2);text-align:center;padding:20px;">История транзакций</p></div>
+            <div id="profileCustomTab" style="display:none;"><p style="color:var(--text2);text-align:center;padding:20px;">Кастомизация</p></div>
+            <div id="profileSettingsTab" style="display:none;"><p style="color:var(--text2);text-align:center;padding:20px;">Настройки</p></div>
+            
+            <div id="profileRefTab" style="display:none;">
+                <div class="ref-container">
+                    <p><strong>Твоя ссылка:</strong></p>
+                    <div class="ref-link" id="refLink">https://t.me/VilldGiftBot?start=REFabc123</div>
+                    <div class="ref-stats">
+                        <div><span id="refCount">0</span> Друзей</div>
+                        <div><span id="refEarned">0</span> ★</div>
+                    </div>
+                    <button class="btn" onclick="copyRefLink()"><i class="fas fa-copy"></i> КОПИРОВАТЬ</button>
+                    <button class="btn btn-secondary" onclick="shareRefLink()"><i class="fab fa-telegram"></i> ПОДЕЛИТЬСЯ</button>
+                </div>
+            </div>
+            
+            <div id="profileAITab" style="display:none;">
+                <div class="ai-chat" id="aiChat">
+                    <div class="ai-message">🤖 Привет! Я AI-помощник VILLD GIFT. Задай мне вопрос!</div>
+                </div>
+                <div style="display:flex;gap:8px;">
+                    <input type="text" id="aiInput" placeholder="Введите сообщение..." style="flex:1;padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;color:white;">
+                    <button class="btn" onclick="sendAIMessage()" style="width:auto;padding:12px 20px;"><i class="fas fa-paper-plane"></i></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ПОПОЛНЕНИЕ -->
+        <div class="page" id="deposit-page">
+            <h2 class="page-title">💎 ПОПОЛНЕНИЕ</h2>
+            <div style="display:flex;gap:8px;margin-bottom:20px;">
+                <button class="btn" onclick="selectDeposit('stars')">⭐ STARS</button>
+                <button class="btn btn-secondary" onclick="selectDeposit('ton')">💎 TON</button>
+            </div>
+            <div id="starsDeposit">
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:15px 0;">
+                    <button class="btn btn-secondary" onclick="depositStars(100)">100 ⭐</button>
+                    <button class="btn btn-secondary" onclick="depositStars(500)">500 ⭐</button>
+                    <button class="btn btn-secondary" onclick="depositStars(1000)">1000 ⭐</button>
+                </div>
+            </div>
+            <div id="tonDeposit" style="display:none;">
+                <div id="ton-connect-container"></div>
+                <p style="color:var(--text2);margin:15px 0;">Или отправьте вручную:</p>
+                <div style="background:var(--surface2);padding:12px;border-radius:12px;font-family:monospace;font-size:12px;word-break:break-all;">UQDkY7gYEHiq0mozLgNsp04g2u_ZjZX19WlSsVq6bnJ0p6vP</div>
+                <button class="btn btn-secondary" onclick="copyAddress()" style="margin-top:10px;">📋 КОПИРОВАТЬ</button>
+            </div>
+        </div>
+
+        <!-- ОСТАЛЬНЫЕ СТРАНИЦЫ -->
+        <div class="page" id="rating-page"><h2 class="page-title">🏆 РЕЙТИНГ</h2><p style="color:var(--text2);text-align:center;">Топ игроков скоро!</p></div>
+        <div class="page" id="quests-page"><h2 class="page-title">📋 КВЕСТЫ</h2><p style="color:var(--text2);text-align:center;">Задания скоро!</p></div>
+        <div class="page" id="shop-page"><h2 class="page-title">🛍️ МАГАЗИН</h2><p style="color:var(--text2);text-align:center;">Бусты скоро!</p></div>
+        <div class="page" id="games-page"><h2 class="page-title">🎮 ИГРЫ</h2><p style="color:var(--text2);text-align:center;">Скоро!</p></div>
+
+        <!-- НИЖНЕЕ МЕНЮ -->
+        <nav class="bottom-nav">
+            <button class="nav-button" data-page="rating" onclick="showPage('rating')"><i class="fas fa-chart-line"></i><span>Рейтинг</span></button>
+            <button class="nav-button" data-page="quests" onclick="showPage('quests')"><i class="fas fa-tasks"></i><span>Квесты</span></button>
+            <button class="nav-button active" data-page="home" onclick="showPage('home')"><i class="fas fa-home"></i><span>Главная</span></button>
+            <button class="nav-button" data-page="shop" onclick="showPage('shop')"><i class="fas fa-store"></i><span>Магазин</span></button>
+            <button class="nav-button" data-page="games" onclick="showPage('games')"><i class="fas fa-gamepad"></i><span>Игры</span></button>
+            <button class="nav-button" data-page="profile" onclick="showPage('profile')"><i class="fas fa-user"></i><span>Профиль</span></button>
+        </nav>
+    </div>
+</div>
+
+<div id="toast" class="toast" style="display:none;"></div>
+
+<script>
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+    
+    let userData = { balance: 1000, tonBalance: 0, refCount: 0, refEarned: 0, refCode: 'REF' + Math.random().toString(36).substr(2,6), inventory: [] };
+    let user = { id: '000000', name: 'Игрок', username: '@username', photo: '' };
+    let tonConnectUI;
+    
+    const CASES = {
+        starter: { name: "СТАРТОВЫЙ", price: 50, icon: "🌸", items: [{icon:"🌸",name:"Цветы",price:25,chance:45},{icon:"🍬",name:"Сладости",price:35,chance:30},{icon:"☕",name:"Кофе",price:45,chance:20},{icon:"💎",name:"Камень",price:100,chance:5}] },
+        premium: { name: "ПРЕМИУМ", price: 150, icon: "🌹", items: [{icon:"🌹",name:"Букет роз",price:75,chance:35},{icon:"🍫",name:"Сладости",price:125,chance:30},{icon:"☕",name:"Кофе",price:175,chance:20},{icon:"💎",name:"Камень",price:300,chance:10},{icon:"⭐",name:"Звезда",price:500,chance:5}] },
+        vip: { name: "VIP", price: 300, icon: "👑", items: [{icon:"💐",name:"Букет",price:200,chance:25},{icon:"🍰",name:"Сладости",price:275,chance:25},{icon:"☕",name:"Кофе",price:350,chance:20},{icon:"💎",name:"Камень",price:600,chance:15},{icon:"🌟",name:"Звезда",price:1000,chance:10},{icon:"👑",name:"Корона",price:2000,chance:5}] }
+    };
+    
+    const TON_ADDRESS = 'UQDkY7gYEHiq0mozLgNsp04g2u_ZjZX19WlSsVq6bnJ0p6vP';
+    
+    function createSnowflakes() {
+        const container = document.getElementById('snowflakes-container');
+        for (let i = 0; i < 40; i++) {
+            const snowflake = document.createElement('div');
+            snowflake.classList.add('snowflake');
+            snowflake.style.width = `${Math.random()*4+2}px`;
+            snowflake.style.height = snowflake.style.width;
+            snowflake.style.left = `${Math.random()*100}vw`;
+            snowflake.style.animationDuration = `${Math.random()*8+8}s`;
+            snowflake.style.animationDelay = `${Math.random()*5}s`;
+            snowflake.style.opacity = Math.random()*0.4+0.3;
+            container.appendChild(snowflake);
+        }
+    }
+    
+    function setupProfile() {
+        if (tg.initDataUnsafe?.user) {
+            let u = tg.initDataUnsafe.user;
+            user.id = u.id;
+            user.name = u.first_name + (u.last_name ? ' ' + u.last_name : '');
+            user.username = u.username ? '@' + u.username : '@user';
+            user.photo = u.photo_url || '';
+        }
+        document.getElementById('profileName').textContent = user.name;
+        document.getElementById('profileUsername').textContent = user.username;
+        document.getElementById('profileId').textContent = 'ID: ' + user.id;
+        if (user.photo) {
+            document.getElementById('profileAvatar').style.backgroundImage = `url(${user.photo})`;
+            document.getElementById('profileAvatar').textContent = '';
+        }
+        document.getElementById('refLink').textContent = `https://t.me/VilldGiftBot?start=${userData.refCode}`;
+        updateUI();
+    }
+    
+    function updateUI() {
+        document.getElementById('homeStarBalance').textContent = userData.balance.toLocaleString();
+        document.getElementById('homeTonBalance').textContent = userData.tonBalance;
+        document.getElementById('refCount').textContent = userData.refCount;
+        document.getElementById('refEarned').textContent = userData.refEarned;
+    }
+    
+    function showPage(pageId) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.getElementById(`${pageId}-page`).classList.add('active');
+        document.querySelectorAll('.nav-button').forEach(b => b.classList.remove('active'));
+        document.querySelector(`[data-page="${pageId}"]`)?.classList.add('active');
+        if (pageId === 'cases') renderAllCases();
+        if (pageId === 'deposit') initTonConnect();
+    }
+    
+    function renderAllCases() {
+        const grid = document.getElementById('allCasesGrid');
+        let html = '';
+        for (let key in CASES) {
+            const c = CASES[key];
+            html += `<div class="case-card" onclick="openCase('${key}')"><div class="case-icon">${c.icon}</div><div class="case-name">${c.name}</div><div class="case-price">${c.price} ⭐</div></div>`;
+        }
+        grid.innerHTML = html;
+    }
+    
+    function openCase(caseId) {
+        const c = CASES[caseId];
+        if (userData.balance < c.price) { showToast('Недостаточно звёзд!'); return; }
+        userData.balance -= c.price;
+        const items = c.items;
+        const totalChance = items.reduce((s, i) => s + i.chance, 0);
+        let rand = Math.random() * totalChance;
+        let winItem = items[0];
+        for (let item of items) { rand -= item.chance; if (rand <= 0) { winItem = item; break; } }
+        userData.balance += winItem.price;
+        userData.inventory.push({...winItem, id: Date.now()});
+        updateUI();
+        showToast(`🎉 ${winItem.name} (${winItem.price} ⭐)!`, 'success');
+    }
+    
+    function switchProfileTab(tab) {
+        document.querySelectorAll('.profile-tab').forEach(t => t.classList.remove('active'));
+        event.target.classList.add('active');
+        ['inventory','promo','stats','achievements','history','ref','custom','settings','ai'].forEach(t => {
+            const el = document.getElementById(`profile${t.charAt(0).toUpperCase() + t.slice(1)}Tab`);
+            if (el) el.style.display = t === tab ? 'block' : 'none';
+        });
+    }
+    
+    function applyPromo() {
+        const code = document.getElementById('promoInput').value.toUpperCase();
+        if (code === 'VILLD') { userData.balance += 500; updateUI(); showToast('✅ +500 ⭐', 'success'); }
+        else if (code === 'GIFT') { userData.balance += 1000; updateUI(); showToast('✅ +1000 ⭐', 'success'); }
+        else { showToast('❌ Неверный промокод'); }
+    }
+    
+    function copyRefLink() {
+        navigator.clipboard?.writeText(`https://t.me/VilldGiftBot?start=${userData.refCode}`);
+        showToast('📋 Ссылка скопирована!', 'success');
+    }
+    
+    function shareRefLink() {
+        const shareText = encodeURIComponent("🎁 VILLD GIFT — открывай кейсы и получай подарки!\n✨ Присоединяйся и получи бонус!");
+        tg.openTelegramLink(`https://t.me/share/url?url=https://t.me/VilldGiftBot?start=${userData.refCode}&text=${shareText}`);
+    }
+    
+    function sendAIMessage() {
+        const input = document.getElementById('aiInput');
+        const msg = input.value.trim();
+        if (!msg) return;
+        const chat = document.getElementById('aiChat');
+        chat.innerHTML += `<div class="ai-message user">${msg}</div>`;
+        input.value = '';
+        setTimeout(() => {
+            let reply = '';
+            if (msg.includes('кейс')) reply = '🎁 У нас есть Стартовый (50⭐), Премиум (150⭐) и VIP (300⭐) кейсы!';
+            else if (msg.includes('баланс')) reply = `💰 Твой баланс: ${userData.balance} ⭐ и ${userData.tonBalance} TON.`;
+            else if (msg.includes('пополнить')) reply = '💎 Пополнить можно через Stars или TON в разделе Пополнение.';
+            else reply = '🤖 Я могу помочь с кейсами, балансом и пополнением. Что интересует?';
+            chat.innerHTML += `<div class="ai-message">${reply}</div>`;
+            chat.scrollTop = chat.scrollHeight;
+        }, 500);
+    }
+    
+    function selectDeposit(method) {
+        document.getElementById('starsDeposit').style.display = method === 'stars' ? 'block' : 'none';
+        document.getElementById('tonDeposit').style.display = method === 'ton' ? 'block' : 'none';
+    }
+    
+    function depositStars(amt) {
+        userData.balance += amt;
+        updateUI();
+        showToast(`✅ +${amt} ⭐`, 'success');
+    }
+    
+    function initTonConnect() {
+        tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+            manifestUrl: 'https://raw.githubusercontent.com/ton-connect/demo/main/public/tonconnect-manifest.json',
+            buttonRootId: 'ton-connect-container'
+        });
+    }
+    
+    function copyAddress() {
+        navigator.clipboard?.writeText(TON_ADDRESS);
+        showToast('📋 Адрес скопирован!', 'success');
+    }
+    
+    function showToast(msg, type = '') {
+        const toast = document.getElementById('toast');
+        toast.textContent = msg;
+        toast.className = 'toast' + (type ? ' ' + type : '');
+        toast.style.display = 'block';
+        setTimeout(() => toast.style.display = 'none', 2000);
+    }
+    
+    if (window.location.search.includes('start=')) {
+        const ref = window.location.search.split('start=')[1];
+        if (ref && !localStorage.getItem('ref_' + ref)) {
+            localStorage.setItem('ref_' + ref, 'done');
+            userData.refCount++;
+            userData.refEarned += 10;
+            userData.balance += 10;
+            showToast('🎉 +10 ⭐ за друга!', 'success');
+        }
+    }
+    
+    setTimeout(() => {
+        document.getElementById('flashTransition').classList.add('active');
+        setTimeout(() => {
+            document.getElementById('loadingScreen').classList.add('hide');
+            document.getElementById('mainApp').style.display = 'block';
+            setTimeout(() => document.getElementById('flashTransition').classList.remove('active'), 200);
+            setupProfile();
+        }, 250);
+    }, 2000);
+    
+    document.addEventListener('DOMContentLoaded', () => { createSnowflakes(); });
+</script>
+</body>
+                                                                   </html>
