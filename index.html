@@ -1,0 +1,294 @@
+<div class="win-screen" id="winScreen"><div class="win-screen-img" id="winScreenImg"></div><div class="win-screen-name" id="winScreenName"></div><div class="win-screen-price" id="winScreenPrice"></div><div class="win-screen-btns"><button class="win-screen-btn inv" onclick="toInv()"><i class="fas fa-box"></i>В инвентарь</button><button class="win-screen-btn sell" onclick="sellWin()"><i class="fas fa-coins"></i>Продать</button><button class="win-screen-btn close" onclick="closeWinScreen()"><i class="fas fa-times"></i>Закрыть</button></div></div>
+<nav class="bnav"><button class="nbtn active" data-page="home"><i class="fas fa-gift"></i>Кейсы</button><button class="nbtn" data-page="soon"><i class="fas fa-trophy"></i>Лидеры</button><button class="nbtn" data-page="soon"><i class="fas fa-gamepad"></i>Игры</button><button class="nbtn" data-page="friends"><i class="fas fa-users"></i>Друзья</button><button class="nbtn" data-page="profile"><i class="fas fa-user"></i>Профиль</button></nav></div>
+
+<!-- МОДАЛ: ДОБАВИТЬ/РЕДАКТИРОВАТЬ КЕЙС -->
+<div class="modal" id="caseModal"><div class="m-content"><h3 id="caseModalTitle">Добавить кейс</h3><input class="inp" id="caseNameInp" placeholder="Название кейса"><input class="inp" id="casePriceInp" placeholder="Цена открытия" type="number" step="any"><div class="select-currency" id="caseCurrency"><button class="curr-btn star active" onclick="selectCaseCurrency('star')">⭐ Звёзды</button><button class="curr-btn ton" onclick="selectCaseCurrency('ton')">💎 TON</button></div><input class="inp" id="caseImgInp" placeholder="Ссылка на аватарку или эмодзи"><div class="m-btns"><button class="mbtn mbtn-save" onclick="saveCase()">Сохранить</button><button class="mbtn mbtn-cancel" onclick="closeModal('caseModal')">Отмена</button></div></div></div>
+
+<!-- МОДАЛ: ДОБАВИТЬ/РЕДАКТИРОВАТЬ ДРОП -->
+<div class="modal" id="dropModal"><div class="m-content"><h3 id="dropModalTitle">Добавить дроп</h3><input class="inp" id="dropNameInp" placeholder="Название"><input class="inp" id="dropPriceInp" placeholder="Цена" type="number" step="any"><div class="select-currency" id="dropCurrency"><button class="curr-btn star active" onclick="selectDropCurrency('star')">⭐ Звёзды</button><button class="curr-btn ton" onclick="selectDropCurrency('ton')">💎 TON</button></div><input class="inp" id="dropImgInp" placeholder="Ссылка на фото или эмодзи"><input class="inp" id="dropChanceInp" placeholder="Шанс (%)" type="text"><div class="inp-hint">Можно с точкой: 0.00001 или 0.5</div><div class="m-btns"><button class="mbtn mbtn-save" onclick="saveDrop()">Сохранить</button><button class="mbtn mbtn-cancel" onclick="closeModal('dropModal')">Отмена</button></div></div></div>
+
+<!-- МОДАЛ: ПОПОЛНЕНИЕ -->
+<div class="modal" id="depModal"><div class="m-content"><h3>💎 Пополнение</h3><div class="tabs"><div class="tab active" data-dep="star" onclick="switchDepTab('star')">⭐ Звёзды</div><div class="tab" data-dep="ton" onclick="switchDepTab('ton')">💎 TON</div></div><div id="depStar" class="dep-btns"><button class="dep-amt star" onclick="depositStar(500)">500 ⭐</button><button class="dep-amt star" onclick="depositStar(1000)">1000 ⭐</button><button class="dep-amt star" onclick="depositStar(2500)">2500 ⭐</button><button class="dep-amt star" onclick="depositStar(5000)">5000 ⭐</button><button class="dep-amt star" onclick="depositStar(10000)">10000 ⭐</button><button class="dep-amt star" onclick="depositStar(25000)">25000 ⭐</button></div><div id="depTon" class="dep-btns" style="display:none"><button class="dep-amt ton" onclick="depositTon(0.5)">0.5 TON</button><button class="dep-amt ton" onclick="depositTon(1)">1 TON</button><button class="dep-amt ton" onclick="depositTon(2.5)">2.5 TON</button><button class="dep-amt ton" onclick="depositTon(5)">5 TON</button><button class="dep-amt ton" onclick="depositTon(10)">10 TON</button><button class="dep-amt ton" onclick="depositTon(25)">25 TON</button></div><div class="m-btns"><button class="mbtn mbtn-cancel" onclick="closeModal('depModal')">Закрыть</button></div></div></div>
+
+<!-- МОДАЛ: ПОДТВЕРЖДЕНИЕ ПУБЛИКАЦИИ -->
+<div class="modal" id="publishModal"><div class="m-content"><h3>☁️ Публикация в облако</h3><p style="font-size:14px;color:#8b9bbf;margin-bottom:15px">Все текущие кейсы и дропы будут сохранены в Telegram Cloud Storage и станут доступны всем игрокам!</p><div class="m-btns"><button class="mbtn mbtn-save" onclick="confirmPublish()">✅ Опубликовать</button><button class="mbtn mbtn-cancel" onclick="closeModal('publishModal')">Отмена</button></div></div></div>
+
+<div class="toast" id="toast"></div><script>
+const tg=window.Telegram.WebApp;tg.expand();
+const ADMIN_ID='8478884644';const SLOT_W=130;
+let user=tg.initDataUnsafe?.user;let userId=user?.id?.toString()||'';let isAdmin=userId===ADMIN_ID;
+
+// ОСНОВНЫЕ ПЕРЕМЕННЫЕ
+let starBalance=10000,tonBalance=0,inventory=[],history=[],cases=[],refCount=0,refEarn=0;
+let selectedCaseCurrency='star',selectedDropCurrency='star';
+let isSpinning=!1,currentWin=null,currentCase=null,editCaseId=null,editDropIdx=null;
+let cloudKey='villd_gift_cloud_data_v2';
+
+// ==================== TELEGRAM CLOUD STORAGE ====================
+async function saveToCloud(data){
+    try{
+        if(tg.CloudStorage){
+            await tg.CloudStorage.setItem(cloudKey,JSON.stringify(data));
+            return true;
+        }
+    }catch(e){console.log('Cloud save error:',e)}
+    return false;
+}
+
+async function loadFromCloud(){
+    try{
+        if(tg.CloudStorage){
+            let raw=await tg.CloudStorage.getItem(cloudKey);
+            if(raw)return JSON.parse(raw);
+        }
+    }catch(e){console.log('Cloud load error:',e)}
+    return null;
+}
+
+// Публикация для всех игроков
+async function publishToCloud(){
+    if(!isAdmin)return;
+    document.getElementById('publishModal').classList.add('on');
+}
+
+async function confirmPublish(){
+    closeModal('publishModal');
+    showSyncStatus('syncing','Синхронизация...');
+    let success=await saveToCloud({cases:cases,updatedAt:Date.now(),version:2});
+    if(success){
+        showSyncStatus('synced','Опубликовано!');
+        setTimeout(()=>hideSyncStatus(),3000);
+        toast('☁️ Данные опубликованы! Все игроки увидят изменения.');
+    }else{
+        showSyncStatus('synced','Ошибка! Сохранено локально.');
+        localStorage.setItem('vg_cases',JSON.stringify(cases));
+        setTimeout(()=>hideSyncStatus(),3000);
+        toast('⚠️ Ошибка облака. Данные сохранены локально.');
+    }
+}
+
+// Загрузка из облака при старте
+async function syncFromCloud(){
+    showSyncStatus('syncing','Загрузка...');
+    let cloudData=await loadFromCloud();
+    if(cloudData&&cloudData.cases&&cloudData.cases.length>0){
+        cases=cloudData.cases;
+        localStorage.setItem('vg_cases',JSON.stringify(cases));
+        saveData();
+        renderCases();
+        showSyncStatus('synced','Синхронизировано');
+        setTimeout(()=>hideSyncStatus(),2000);
+        toast('☁️ Кейсы загружены из облака!');
+    }else{
+        // Загружаем из localStorage если облако пустое
+        let cs=localStorage.getItem('vg_cases');
+        if(cs){cases=JSON.parse(cs);renderCases();}
+        showSyncStatus('synced','Локально');
+        setTimeout(()=>hideSyncStatus(),2000);
+    }
+}
+
+async function forceSyncNow(){
+    showSyncStatus('syncing','Синхронизация...');
+    await syncFromCloud();
+    updBal();updInv();updHist();updTicker();updRef();
+}
+
+function showSyncStatus(type,text){
+    let el=document.getElementById('syncStatus');
+    el.textContent=text;
+    el.className='sync-status show '+type;
+}
+
+function hideSyncStatus(){
+    document.getElementById('syncStatus').classList.remove('show');
+}
+
+// ==================== ЗАГРУЗКА ДАННЫХ ====================
+function loadData(){
+    let sb=localStorage.getItem('vg_star');starBalance=sb!==null?parseInt(sb):10000;
+    let tb=localStorage.getItem('vg_ton');tonBalance=tb!==null?parseFloat(tb):0;
+    let i=localStorage.getItem('vg_inv');inventory=i?JSON.parse(i):[];
+    let h=localStorage.getItem('vg_hist');history=h?JSON.parse(h):[];
+    refCount=parseInt(localStorage.getItem('vg_refc')||'0');
+    refEarn=parseInt(localStorage.getItem('vg_refe')||'0');
+}
+loadData();
+
+function saveData(){
+    localStorage.setItem('vg_star',starBalance);localStorage.setItem('vg_ton',tonBalance);
+    localStorage.setItem('vg_inv',JSON.stringify(inventory));localStorage.setItem('vg_hist',JSON.stringify(history));
+    localStorage.setItem('vg_refc',refCount);localStorage.setItem('vg_refe',refEarn);
+}
+
+// ==================== ЗВЁЗДНЫЙ ФОН ====================
+function createStars(){const c=document.getElementById('cosmicBg');const s=['⭐','🌟','✨','💫','•'];for(let i=0;i<40;i++){let e=document.createElement('div');e.className='star-particle slow';e.textContent=s[Math.floor(Math.random()*s.length)];e.style.left=Math.random()*100+'vw';e.style.top=-(Math.random()*30)+'px';e.style.fontSize=(Math.random()*10+8)+'px';e.style.animationDuration=(Math.random()*20+15)+'s';e.style.animationDelay=(Math.random()*20)+'s';c.appendChild(e)}for(let i=0;i<15;i++){let e=document.createElement('div');e.className='star-particle fast';e.textContent='💫';e.style.left=Math.random()*100+'vw';e.style.top=-(Math.random()*50)+'px';e.style.fontSize=(Math.random()*14+12)+'px';e.style.animationDuration=(Math.random()*3+3)+'s';e.style.animationDelay=(Math.random()*8)+'s';e.style.textShadow='0 0 10px #fff,0 0 20px #ffd700';c.appendChild(e)}}
+
+// ==================== UI ОБНОВЛЕНИЯ ====================
+function sortCases(){cases.sort((a,b)=>a.price-b.price)}
+function updBal(){document.getElementById('starBalance').textContent=starBalance;document.getElementById('tonBalance').textContent=tonBalance.toFixed(2);saveData()}
+function depositStar(v){starBalance+=v;updBal();toast('+'+v+' ⭐')}
+function depositTon(v){tonBalance+=v;updBal();toast('+'+v+' TON')}
+function showDep(){document.getElementById('depModal').classList.add('on')}
+function switchDepTab(t){document.querySelectorAll('#depModal .tab').forEach(x=>x.classList.remove('active'));document.querySelector(`[data-dep="${t}"]`).classList.add('active');document.getElementById('depStar').style.display=t==='star'?'grid':'none';document.getElementById('depTon').style.display=t==='ton'?'grid':'none'}
+function selectCaseCurrency(t){selectedCaseCurrency=t;document.querySelectorAll('#caseCurrency .curr-btn').forEach(b=>b.classList.remove('active'));document.querySelector(`#caseCurrency .curr-btn.${t}`).classList.add('active')}
+function selectDropCurrency(t){selectedDropCurrency=t;document.querySelectorAll('#dropCurrency .curr-btn').forEach(b=>b.classList.remove('active'));document.querySelector(`#dropCurrency .curr-btn.${t}`).classList.add('active')}
+function updRef(){document.getElementById('refCount').textContent=refCount;document.getElementById('refEarn').textContent=refEarn+' ⭐'}
+
+// ==================== РЕНДЕР КЕЙСОВ ====================
+function renderCases(){
+    sortCases();const g=document.getElementById('casesGrid');
+    if(cases.length===0){g.innerHTML='<div style="color:#8b9bbf;text-align:center;padding:40px;grid-column:1/-1">Нет кейсов. Админ добавит позже.</div>';return}
+    g.innerHTML='';cases.forEach(c=>{
+        let d=document.createElement('div');d.className='case-card'+(isAdmin?' admin':'');
+        let ih=c.image&&c.image.startsWith('http')?`<img src="${c.image}" alt="">`:c.image||'❓';
+        let priceHTML=c.currency==='ton'?`💎 ${c.price} TON`:`⭐ ${c.price}`;
+        let priceClass=c.currency==='ton'?'ton':'star';
+        d.innerHTML=`<div class="case-img">${ih}</div><div class="case-name">${c.name}</div><div class="case-price ${priceClass}">${priceHTML}</div>${isAdmin?`<button class="case-edit" onclick="event.stopPropagation();editCase('${c.id}')"><i class="fas fa-pen"></i></button>`:''}`;
+        d.onclick=()=>openCase(c.id);g.appendChild(d);
+    });
+}
+
+function showPage(p){if(p==='soon'){toast('Скоро...');return}document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));let el=document.getElementById(p+'Page');if(el)el.classList.add('active');document.querySelectorAll('.nbtn').forEach(b=>b.classList.remove('active'));let nb=document.querySelector(`[data-page="${p}"]`);if(nb)nb.classList.add('active');if(p==='profile'){updInv();updHist()}if(p==='friends')updRef()}
+
+// ==================== ОТКРЫТИЕ КЕЙСА ====================
+function openCase(id){let cs=cases.find(c=>c.id===id);if(!cs)return;currentCase=cs;document.getElementById('caseTitle').textContent=cs.name;let currLabel=cs.currency==='ton'?'TON':'⭐';document.getElementById('spinBtn').textContent='🎰 КРУТИТЬ ('+cs.price+' '+currLabel+')';document.getElementById('spinBtn').dataset.price=cs.price;document.getElementById('spinBtn').dataset.currency=cs.currency;buildRoulette(cs.drops);buildDropsGrid(cs);document.getElementById('winScreen').classList.remove('active');document.getElementById('spinBtn').style.display='block';document.getElementById('spinBtn').disabled=!1;currentWin=null;document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));document.getElementById('casePage').classList.add('active');document.getElementById('addDropBtn').style.display=isAdmin?'block':'none'}
+function goBack(){document.getElementById('casePage').classList.remove('active');document.getElementById('homePage').classList.add('active')}<script>
+// ==================== РУЛЕТКА ====================
+function buildRoulette(drops){
+    let t=document.getElementById('rwTrack');t.innerHTML='';
+    let ext=[];for(let k=0;k<20;k++)ext.push(...drops);
+    ext.forEach(g=>{let s=document.createElement('div');s.className='slot';let ih=g.img&&g.img.startsWith('http')?`<img src="${g.img}" alt="">`:g.img||'❓';s.innerHTML=`<div class="slot-img">${ih}</div><div class="slot-name">${g.name}</div>`;t.appendChild(s)});
+    let w=document.getElementById('rwWrap').clientWidth;
+    t.style.transform=`translateX(${w/2-SLOT_W/2}px)`;t.dataset.pos=w/2-SLOT_W/2;
+    t.dataset.dropCount=drops.length;
+}
+
+// ==================== СЕТКА ДРОПОВ ====================
+function buildDropsGrid(cs){
+    let g=document.getElementById('dropsGrid');
+    if(cs.drops.length===0){g.innerHTML='<div style="color:#8b9bbf;text-align:center;padding:20px;grid-column:1/-1">Нет дропов</div>';return}
+    g.innerHTML=cs.drops.map((drop,i)=>{
+        let ih=drop.img&&drop.img.startsWith('http')?`<img src="${drop.img}" alt="">`:drop.img||'❓';
+        let priceHTML=drop.currency==='ton'?`💎 ${drop.price} TON`:`⭐ ${drop.price}`;
+        let priceClass=drop.currency==='ton'?'ton':'star';
+        return`<div class="drop-card${isAdmin?' admin':''}"><div class="drop-card-img">${ih}</div><div class="drop-card-name">${drop.name}</div><div class="drop-card-price ${priceClass}">${priceHTML}</div>${isAdmin?`<div class="drop-card-actions"><button class="drop-edit-btn" data-id="${cs.id}" data-idx="${i}"><i class="fas fa-pen"></i></button><button class="drop-del-btn" data-id="${cs.id}" data-idx="${i}"><i class="fas fa-times"></i></button></div>`:''}</div>`;
+    }).join('');
+    g.querySelectorAll('.drop-edit-btn').forEach(b=>{b.onclick=function(e){e.stopPropagation();let cid=this.dataset.id;let idx=parseInt(this.dataset.idx);let cs=cases.find(c=>c.id===cid);if(cs){currentCase=cs;showDropModal(idx)}}});
+    g.querySelectorAll('.drop-del-btn').forEach(b=>{b.onclick=function(e){e.stopPropagation();let cid=this.dataset.id;let idx=parseInt(this.dataset.idx);delDrop(cid,idx)}});
+}
+
+// ==================== СПИН ====================
+function spin(){
+    if(isSpinning||!currentCase)return;
+    let pr=parseFloat(document.getElementById('spinBtn').dataset.price)||500;
+    let curr=document.getElementById('spinBtn').dataset.currency||'star';
+    if(curr==='star'&&starBalance<pr){toast('Недостаточно звёзд!');return}
+    if(curr==='ton'&&tonBalance<pr){toast('Недостаточно TON!');return}
+    if(curr==='star')starBalance-=pr;else tonBalance-=pr;
+    updBal();isSpinning=!0;document.getElementById('spinBtn').disabled=!0;
+    document.getElementById('winScreen').classList.remove('active');
+    
+    let drops=currentCase.drops;
+    let tc=drops.reduce((s,g)=>s+(parseFloat(g.chance)||0),0),r=Math.random()*tc,win=drops[0];
+    for(let g of drops){r-=(parseFloat(g.chance)||0);if(r<=0){win=g;break}}
+    
+    let wi=drops.indexOf(win),tr=document.getElementById('rwTrack');
+    let dropCount=parseInt(tr.dataset.dropCount)||drops.length;
+    let targetSet=10,ts=targetSet*dropCount+wi;
+    let w=document.getElementById('rwWrap').clientWidth,sp=parseFloat(tr.dataset.pos)||0;
+    let to=-(ts*SLOT_W)+w/2-SLOT_W/2;
+    let extra=Math.floor(Math.random()*2+1)*dropCount*SLOT_W,td=to-sp-extra;
+    let dur=4000+Math.random()*2000,st=Date.now();
+    function anim(){
+        let e=Date.now()-st,p=Math.min(e/dur,1),ea=1-Math.pow(1-p,3);
+        tr.style.transform=`translateX(${sp+td*ea}px)`;tr.dataset.pos=sp+td*ea;
+        if(p<1)requestAnimationFrame(anim);
+        else{
+            currentWin=win;
+            let ic=document.getElementById('winScreenImg');
+            ic.innerHTML=win.img&&win.img.startsWith('http')?`<img src="${win.img}" alt="">`:win.img||'❓';
+            document.getElementById('winScreenName').textContent=win.name;
+            let wc=win.currency||curr;
+            document.getElementById('winScreenPrice').textContent=wc==='ton'?win.price+' TON':win.price+' ⭐';
+            document.getElementById('winScreenPrice').className='win-screen-price '+(wc==='ton'?'ton':'star');
+            document.getElementById('winScreen').classList.add('active');
+            document.getElementById('spinBtn').style.display='none';
+            isSpinning=!1;
+            history.unshift({name:win.name,price:win.price,currency:wc,img:win.img,time:new Date().toLocaleTimeString()});
+            if(history.length>50)history.pop();
+            saveData();updHist();updTicker();
+        }
+    }
+    requestAnimationFrame(anim);
+}
+
+function toInv(){if(!currentWin)return;inventory.push({name:currentWin.name,price:currentWin.price,currency:currentWin.currency||currentCase.currency,img:currentWin.img});saveData();updInv();toast('📦 В инвентарь!');closeWinScreen()}
+function sellWin(){if(!currentWin)return;let curr=currentWin.currency||currentCase.currency;if(curr==='star')starBalance+=Math.floor(currentWin.price*0.5);else tonBalance+=Math.round(currentWin.price*0.5*100)/100;updBal();toast('💰 Продано!');closeWinScreen()}
+function closeWinScreen(){document.getElementById('winScreen').classList.remove('active');document.getElementById('spinBtn').style.display='block';document.getElementById('spinBtn').disabled=!1;currentWin=null;if(currentCase)buildRoulette(currentCase.drops)}
+
+// ==================== ИНВЕНТАРЬ ====================
+function withdrawItem(idx){if(!inventory[idx])return;let item=inventory[idx];if(item.currency==='ton')tonBalance+=item.price;else starBalance+=item.price;inventory.splice(idx,1);updBal();updInv();saveData();toast('💱 Выведено!')}
+function sellInvItem(idx){if(!inventory[idx])return;let item=inventory[idx];if(item.currency==='ton')tonBalance+=Math.round(item.price*0.4*100)/100;else starBalance+=Math.floor(item.price*0.4);inventory.splice(idx,1);updBal();updInv();saveData();toast('💰 Продано!')}
+
+function updInv(){let c=document.getElementById('inventoryList');if(!inventory||inventory.length===0){c.innerHTML='<span style="color:#8b9bbf">Пока пусто...</span>';return}c.innerHTML=inventory.map((g,i)=>{let ih=g.img&&g.img.startsWith('http')?`<img src="${g.img}">`:g.img||'❓';let pc=g.currency==='ton'?'ton':'star';let pl=g.currency==='ton'?g.price+' TON':g.price+' ⭐';return`<div class="lrow"><div class="lleft"><div class="lthumb">${ih}</div><span class="lname">${g.name}</span></div><div class="inv-actions"><span class="lprice ${pc}">${pl}</span><button class="inv-btn withdraw" onclick="withdrawItem(${i})">💱 Вывести</button><button class="inv-btn sell-inv" onclick="sellInvItem(${i})">💰 Продать</button></div></div>`}).join('')}
+function updHist(){let c=document.getElementById('historyList');if(!history||history.length===0){c.innerHTML='<span style="color:#8b9bbf">Пока пусто...</span>';return}c.innerHTML=history.map(g=>{let ih=g.img&&g.img.startsWith('http')?`<img src="${g.img}">`:g.img||'❓';let pc=g.currency==='ton'?'ton':'star';let pl=g.currency==='ton'?g.price+' TON':g.price+' ⭐';return`<div class="lrow"><div class="lleft"><div class="lthumb">${ih}</div><span class="lname">${g.name}</span></div><div><span style="font-size:11px;color:#8b9bbf">${g.time}</span> <span class="lprice ${pc}">${pl}</span></div></div>`}).join('')}
+function updTicker(){let c=document.getElementById('tickerInner');if(!history||history.length===0){c.innerHTML='<span>🎉 Открывай кейсы и выигрывай!</span>';return}let h=history.slice(0,5).map(g=>{let pl=g.currency==='ton'?g.price+' TON':g.price+' ⭐';return`<span>🎉 Выиграл ${g.name} (${pl})</span>`}).join('');c.innerHTML=h+h}<script>
+// ==================== РЕФ-СИСТЕМА ====================
+function copyRef(){let link=document.getElementById('refLink').textContent;navigator.clipboard.writeText(link).then(()=>toast('📋 Ссылка скопирована!')).catch(()=>toast('Не удалось скопировать'))}
+function shareRef(){let link=document.getElementById('refLink').textContent;let shareText='🎁 Залетай в VILLD GIFT! Открывай кейсы и выигрывай подарки!';let shareUrl='https://t.me/share/url?url='+encodeURIComponent(link)+'&text='+encodeURIComponent(shareText);if(tg.openTelegramLink)tg.openTelegramLink(shareUrl);else window.open(shareUrl,'_blank')}
+
+// ==================== АДМИН-ПАНЕЛЬ ====================
+function showCaseModal(id=null){editCaseId=id;document.getElementById('caseModalTitle').textContent=id?'Редактировать кейс':'Добавить кейс';if(id){let cs=cases.find(c=>c.id===id);document.getElementById('caseNameInp').value=cs.name||'';document.getElementById('casePriceInp').value=cs.price||'';document.getElementById('caseImgInp').value=cs.image||'';selectCaseCurrency(cs.currency||'star')}else{document.getElementById('caseNameInp').value='';document.getElementById('casePriceInp').value='';document.getElementById('caseImgInp').value='';selectCaseCurrency('star')}document.getElementById('caseModal').classList.add('on')}
+function editCase(id){showCaseModal(id)}
+function saveCase(){let n=document.getElementById('caseNameInp').value.trim();let p=parseFloat(document.getElementById('casePriceInp').value);let i=document.getElementById('caseImgInp').value.trim();if(!n||isNaN(p)||p<=0)return toast('Заполните все поля корректно!');if(editCaseId){let cs=cases.find(c=>c.id===editCaseId);if(cs){cs.name=n;cs.price=p;cs.image=i;cs.currency=selectedCaseCurrency}}else{cases.push({id:'c_'+Date.now(),name:n,price:p,image:i,currency:selectedCaseCurrency,drops:[]})}closeModal('caseModal');sortCases();renderCases();saveData();toast('✅ Кейс сохранён!')}
+function showDropModal(idx=null){if(!currentCase)return;editDropIdx=idx;document.getElementById('dropModalTitle').textContent=idx!==null?'Редактировать дроп':'Добавить дроп';if(idx!==null){let d=currentCase.drops[idx];document.getElementById('dropNameInp').value=d.name||'';document.getElementById('dropPriceInp').value=d.price||'';document.getElementById('dropImgInp').value=d.img||'';document.getElementById('dropChanceInp').value=d.chance||'';selectDropCurrency(d.currency||currentCase.currency)}else{document.getElementById('dropNameInp').value='';document.getElementById('dropPriceInp').value='';document.getElementById('dropImgInp').value='';document.getElementById('dropChanceInp').value='';selectDropCurrency(currentCase.currency||'star')}document.getElementById('dropModal').classList.add('on')}
+function editDrop(cid,idx){let cs=cases.find(c=>c.id===cid);if(cs){currentCase=cs;showDropModal(idx)}}
+function saveDrop(){if(!currentCase)return;let n=document.getElementById('dropNameInp').value.trim();let p=parseFloat(document.getElementById('dropPriceInp').value);let i=document.getElementById('dropImgInp').value.trim();let c=parseFloat(document.getElementById('dropChanceInp').value.replace(',','.'));if(!n||isNaN(p)||p<=0||isNaN(c)||c<=0)return toast('Заполните все поля корректно!');let drop={name:n,price:p,img:i,chance:c,currency:selectedDropCurrency};if(editDropIdx!==null)currentCase.drops[editDropIdx]=drop;else currentCase.drops.push(drop);closeModal('dropModal');buildDropsGrid(currentCase);buildRoulette(currentCase.drops);saveData();toast('✅ Дроп сохранён!')}
+function delDrop(cid,idx){let cs=cases.find(c=>c.id===cid);if(cs){cs.drops.splice(idx,1);currentCase=cs;buildDropsGrid(cs);buildRoulette(cs.drops);saveData();toast('🗑 Дроп удалён')}}
+function closeModal(id){document.getElementById(id).classList.remove('on');editCaseId=null;editDropIdx=null}
+function toast(m){let t=document.getElementById('toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',2000)}
+
+// ==================== ИНИЦИАЛИЗАЦИЯ ====================
+document.querySelectorAll('#profileTabs .tab').forEach(t=>t.addEventListener('click',()=>{document.querySelectorAll('#profileTabs .tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');document.querySelectorAll('.tab-content').forEach(x=>x.classList.remove('active'));document.getElementById('tab-'+t.dataset.tab).classList.add('active')}));
+document.querySelectorAll('.nbtn').forEach(b=>b.addEventListener('click',()=>showPage(b.dataset.page)));
+
+createStars();
+updBal();
+renderCases();
+updInv();
+updHist();
+updTicker();
+updRef();
+
+if(isAdmin){
+    document.getElementById('adminPanel').style.display='block';
+}
+
+document.getElementById('refLink').textContent='https://t.me/VilldGiftBot?start=ref'+userId;
+
+// Главная инициализация с облаком
+async function initApp(){
+    await syncFromCloud();
+    updBal();
+    renderCases();
+    updInv();
+    updHist();
+    updTicker();
+    updRef();
+}
+
+// Запуск
+initApp();
+
+setTimeout(()=>{
+    document.getElementById('flash').classList.add('on');
+    setTimeout(()=>{
+        document.getElementById('loadingScreen').classList.add('hide');
+        document.getElementById('app').classList.add('show');
+        setTimeout(()=>document.getElementById('flash').classList.remove('on'),200);
+    },250);
+},2500);
+</script>
+</body>
+</html>
